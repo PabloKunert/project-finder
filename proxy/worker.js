@@ -13,11 +13,10 @@
  *   npx wrangler secret put ANTHROPIC_API_KEY --name bidroute-proxy
  */
 
-const ALLOWED_ORIGIN = "https://pablokunert.github.io";
-const ANTHROPIC_API  = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 
 const CORS = {
-  "Access-Control-Allow-Origin":  ALLOWED_ORIGIN,
+  "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Max-Age":       "86400",
