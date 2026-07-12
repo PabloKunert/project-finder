@@ -513,8 +513,9 @@ Rules:
     let t = text.trim();
     t = t.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
     const start = t.indexOf('{');
-    if(start < 0){ throw new Error('No JSON object found in the response.'); }
-    t = t.substring(start);
+    const end   = t.lastIndexOf('}');
+    if(start < 0 || end <= start){ throw new Error('No JSON object found in the response.'); }
+    t = t.substring(start, end + 1);
     try{ return JSON.parse(t); }
     catch(e){ return repairTruncatedJson(t); }
   }
@@ -638,8 +639,7 @@ Rules:
         max_tokens: 1000,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserPrompt(query, location, level) }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }],
-        tool_choice: { type: 'tool', name: 'web_search' }
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }]
       })
     });
     if(!response.ok){ throw new Error(`Search request failed (${response.status})`); }
