@@ -121,7 +121,7 @@
     color:var(--ink);
   }
   #queryInput{ flex:2 1 220px; font-weight:600; }
-  #locationInput{ flex:1 1 160px; }
+  #locationInput{ width:100%; }
   #levelSelect{ flex:1 1 150px; cursor:pointer; }
   .go-btn{
     flex:0 0 auto;
@@ -294,6 +294,53 @@
     #queryInput, #locationInput, #levelSelect, .go-btn{ flex:1 1 auto; width:100%; }
     .go-btn{ clip-path:none; padding-left:26px; }
   }
+
+  /* ---------- Location autocomplete ---------- */
+  .ac-wrap{ position:relative; }
+  .ac-drop{
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0; right:0;
+    z-index:200;
+    background:#fff;
+    border:1.5px solid var(--concrete-2);
+    border-radius:8px;
+    list-style:none;
+    margin:0; padding:0;
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    transition:max-height .14s ease, opacity .1s ease;
+    pointer-events:none;
+    box-shadow:0 8px 24px rgba(0,0,0,0.10);
+  }
+  .ac-drop.open{
+    max-height:272px;
+    opacity:1;
+    overflow-y:auto;
+    pointer-events:all;
+  }
+  .ac-item{
+    padding:9px 13px;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+    border-bottom:1px solid var(--concrete-2);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .ac-item:last-child{ border-bottom:none; }
+  .ac-item:hover,.ac-item.hi{
+    background:rgba(11,93,59,.07);
+    color:var(--route-green);
+  }
+  .ac-item .ac-sub{
+    font-size:11px;
+    color:var(--muted);
+    margin-left:6px;
+  }
 </style>
 </head>
 <body>
@@ -312,7 +359,9 @@
     <h1>Government Bid Leads</h1>
     <form class="search-row" id="searchForm">
       <input type="text" id="queryInput" value="StreetBond 120" aria-label="Product or search term" autocomplete="off">
-      <input type="text" id="locationInput" placeholder="State or city (optional)" aria-label="Location filter" autocomplete="off">
+      <div class="ac-wrap" style="flex:1 1 160px">
+        <input type="text" id="locationInput" placeholder="State or city" aria-label="Location filter" autocomplete="off" style="width:100%">
+      </div>
       <select id="levelSelect" aria-label="Government level">
         <option value="all">All levels</option>
         <option value="federal">Federal</option>
@@ -338,7 +387,14 @@
 
   const SYSTEM_PROMPT = `You are a procurement research assistant. Your job is to find REAL, CURRENTLY OPEN OR RECENTLY POSTED government contract opportunities, RFPs, ITBs, or bid solicitations that specifically call for, specify, or reference the product/material the user names.
 
-Search live using web search across sources like SAM.gov, state DOT bid-letting sites, municipal or county procurement portals, and public bid aggregators (BidNet, PublicPurchase, DemandStar, etc).
+Search live using web search across these primary sources:
+- SAM.gov (federal)
+- State DOT bid-letting portals (CALTRANS, TxDOT, FDOT, etc.)
+- VendorLine / PlanetBids (vendorline.com / planetbids.com) — government bid board for public agencies
+- Crisp Plan Room (crispplanroom.com) — California school districts and public works plan room
+- SecureBids (securebids.com) — public agency secure bid submission platform
+- Municipal and county procurement portals
+- BidNet, PublicPurchase, DemandStar
 
 Rules:
 - Only include opportunities you actually found via search. Never invent agencies, projects, or URLs.
@@ -528,6 +584,146 @@ Rules:
 
   loadSaved();
   search('StreetBond 120', '', 'all');
+
+  /* ---- Location autocomplete ---- */
+  const LOCATIONS = [
+    // States
+    {n:"Alabama",a:"AL"},{n:"Alaska",a:"AK"},{n:"Arizona",a:"AZ"},{n:"Arkansas",a:"AR"},
+    {n:"California",a:"CA"},{n:"Colorado",a:"CO"},{n:"Connecticut",a:"CT"},{n:"Delaware",a:"DE"},
+    {n:"Florida",a:"FL"},{n:"Georgia",a:"GA"},{n:"Hawaii",a:"HI"},{n:"Idaho",a:"ID"},
+    {n:"Illinois",a:"IL"},{n:"Indiana",a:"IN"},{n:"Iowa",a:"IA"},{n:"Kansas",a:"KS"},
+    {n:"Kentucky",a:"KY"},{n:"Louisiana",a:"LA"},{n:"Maine",a:"ME"},{n:"Maryland",a:"MD"},
+    {n:"Massachusetts",a:"MA"},{n:"Michigan",a:"MI"},{n:"Minnesota",a:"MN"},{n:"Mississippi",a:"MS"},
+    {n:"Missouri",a:"MO"},{n:"Montana",a:"MT"},{n:"Nebraska",a:"NE"},{n:"Nevada",a:"NV"},
+    {n:"New Hampshire",a:"NH"},{n:"New Jersey",a:"NJ"},{n:"New Mexico",a:"NM"},{n:"New York",a:"NY"},
+    {n:"North Carolina",a:"NC"},{n:"North Dakota",a:"ND"},{n:"Ohio",a:"OH"},{n:"Oklahoma",a:"OK"},
+    {n:"Oregon",a:"OR"},{n:"Pennsylvania",a:"PA"},{n:"Rhode Island",a:"RI"},{n:"South Carolina",a:"SC"},
+    {n:"South Dakota",a:"SD"},{n:"Tennessee",a:"TN"},{n:"Texas",a:"TX"},{n:"Utah",a:"UT"},
+    {n:"Vermont",a:"VT"},{n:"Virginia",a:"VA"},{n:"Washington",a:"WA"},{n:"West Virginia",a:"WV"},
+    {n:"Wisconsin",a:"WI"},{n:"Wyoming",a:"WY"},{n:"Washington D.C.",a:"DC"},
+    // Cities
+    {n:"Birmingham",a:"AL"},{n:"Huntsville",a:"AL"},{n:"Mobile",a:"AL"},{n:"Montgomery",a:"AL"},
+    {n:"Anchorage",a:"AK"},{n:"Fairbanks",a:"AK"},
+    {n:"Chandler",a:"AZ"},{n:"Flagstaff",a:"AZ"},{n:"Mesa",a:"AZ"},{n:"Phoenix",a:"AZ"},{n:"Scottsdale",a:"AZ"},{n:"Tempe",a:"AZ"},{n:"Tucson",a:"AZ"},
+    {n:"Fayetteville",a:"AR"},{n:"Fort Smith",a:"AR"},{n:"Little Rock",a:"AR"},
+    {n:"Bakersfield",a:"CA"},{n:"Fresno",a:"CA"},{n:"Irvine",a:"CA"},{n:"Long Beach",a:"CA"},{n:"Los Angeles",a:"CA"},{n:"Oakland",a:"CA"},{n:"Riverside",a:"CA"},{n:"Sacramento",a:"CA"},{n:"San Diego",a:"CA"},{n:"San Francisco",a:"CA"},{n:"San Jose",a:"CA"},{n:"Santa Ana",a:"CA"},{n:"Santa Barbara",a:"CA"},{n:"Stockton",a:"CA"},
+    {n:"Aurora",a:"CO"},{n:"Colorado Springs",a:"CO"},{n:"Denver",a:"CO"},{n:"Fort Collins",a:"CO"},{n:"Pueblo",a:"CO"},
+    {n:"Bridgeport",a:"CT"},{n:"Hartford",a:"CT"},{n:"New Haven",a:"CT"},{n:"Stamford",a:"CT"},
+    {n:"Dover",a:"DE"},{n:"Wilmington",a:"DE"},
+    {n:"Cape Coral",a:"FL"},{n:"Fort Lauderdale",a:"FL"},{n:"Gainesville",a:"FL"},{n:"Jacksonville",a:"FL"},{n:"Miami",a:"FL"},{n:"Orlando",a:"FL"},{n:"St. Petersburg",a:"FL"},{n:"Tallahassee",a:"FL"},{n:"Tampa",a:"FL"},
+    {n:"Atlanta",a:"GA"},{n:"Augusta",a:"GA"},{n:"Columbus",a:"GA"},{n:"Savannah",a:"GA"},
+    {n:"Honolulu",a:"HI"},
+    {n:"Boise",a:"ID"},{n:"Idaho Falls",a:"ID"},{n:"Nampa",a:"ID"},
+    {n:"Aurora",a:"IL"},{n:"Chicago",a:"IL"},{n:"Naperville",a:"IL"},{n:"Peoria",a:"IL"},{n:"Rockford",a:"IL"},{n:"Springfield",a:"IL"},
+    {n:"Evansville",a:"IN"},{n:"Fort Wayne",a:"IN"},{n:"Indianapolis",a:"IN"},{n:"South Bend",a:"IN"},
+    {n:"Cedar Rapids",a:"IA"},{n:"Davenport",a:"IA"},{n:"Des Moines",a:"IA"},
+    {n:"Kansas City",a:"KS"},{n:"Overland Park",a:"KS"},{n:"Topeka",a:"KS"},{n:"Wichita",a:"KS"},
+    {n:"Lexington",a:"KY"},{n:"Louisville",a:"KY"},
+    {n:"Baton Rouge",a:"LA"},{n:"New Orleans",a:"LA"},{n:"Shreveport",a:"LA"},
+    {n:"Augusta",a:"ME"},{n:"Portland",a:"ME"},
+    {n:"Baltimore",a:"MD"},{n:"Frederick",a:"MD"},{n:"Rockville",a:"MD"},
+    {n:"Boston",a:"MA"},{n:"Cambridge",a:"MA"},{n:"Springfield",a:"MA"},{n:"Worcester",a:"MA"},
+    {n:"Ann Arbor",a:"MI"},{n:"Detroit",a:"MI"},{n:"Flint",a:"MI"},{n:"Grand Rapids",a:"MI"},{n:"Lansing",a:"MI"},
+    {n:"Duluth",a:"MN"},{n:"Minneapolis",a:"MN"},{n:"Rochester",a:"MN"},{n:"St. Paul",a:"MN"},
+    {n:"Biloxi",a:"MS"},{n:"Jackson",a:"MS"},
+    {n:"Columbia",a:"MO"},{n:"Kansas City",a:"MO"},{n:"Springfield",a:"MO"},{n:"St. Louis",a:"MO"},
+    {n:"Billings",a:"MT"},{n:"Great Falls",a:"MT"},{n:"Missoula",a:"MT"},
+    {n:"Lincoln",a:"NE"},{n:"Omaha",a:"NE"},
+    {n:"Henderson",a:"NV"},{n:"Las Vegas",a:"NV"},{n:"Reno",a:"NV"},
+    {n:"Concord",a:"NH"},{n:"Manchester",a:"NH"},{n:"Nashua",a:"NH"},
+    {n:"Jersey City",a:"NJ"},{n:"Newark",a:"NJ"},{n:"Paterson",a:"NJ"},{n:"Trenton",a:"NJ"},
+    {n:"Albuquerque",a:"NM"},{n:"Las Cruces",a:"NM"},{n:"Santa Fe",a:"NM"},
+    {n:"Albany",a:"NY"},{n:"Buffalo",a:"NY"},{n:"New York City",a:"NY"},{n:"Rochester",a:"NY"},{n:"Syracuse",a:"NY"},{n:"Yonkers",a:"NY"},
+    {n:"Charlotte",a:"NC"},{n:"Durham",a:"NC"},{n:"Greensboro",a:"NC"},{n:"Raleigh",a:"NC"},{n:"Winston-Salem",a:"NC"},
+    {n:"Bismarck",a:"ND"},{n:"Fargo",a:"ND"},
+    {n:"Akron",a:"OH"},{n:"Cincinnati",a:"OH"},{n:"Cleveland",a:"OH"},{n:"Columbus",a:"OH"},{n:"Dayton",a:"OH"},{n:"Toledo",a:"OH"},
+    {n:"Norman",a:"OK"},{n:"Oklahoma City",a:"OK"},{n:"Tulsa",a:"OK"},
+    {n:"Eugene",a:"OR"},{n:"Portland",a:"OR"},{n:"Salem",a:"OR"},
+    {n:"Allentown",a:"PA"},{n:"Philadelphia",a:"PA"},{n:"Pittsburgh",a:"PA"},{n:"Reading",a:"PA"},
+    {n:"Providence",a:"RI"},
+    {n:"Charleston",a:"SC"},{n:"Columbia",a:"SC"},{n:"Greenville",a:"SC"},
+    {n:"Rapid City",a:"SD"},{n:"Sioux Falls",a:"SD"},
+    {n:"Chattanooga",a:"TN"},{n:"Knoxville",a:"TN"},{n:"Memphis",a:"TN"},{n:"Nashville",a:"TN"},
+    {n:"Arlington",a:"TX"},{n:"Austin",a:"TX"},{n:"Corpus Christi",a:"TX"},{n:"Dallas",a:"TX"},{n:"El Paso",a:"TX"},{n:"Fort Worth",a:"TX"},{n:"Houston",a:"TX"},{n:"Laredo",a:"TX"},{n:"Lubbock",a:"TX"},{n:"Plano",a:"TX"},{n:"San Antonio",a:"TX"},
+    {n:"Provo",a:"UT"},{n:"Salt Lake City",a:"UT"},{n:"West Valley City",a:"UT"},
+    {n:"Burlington",a:"VT"},
+    {n:"Alexandria",a:"VA"},{n:"Chesapeake",a:"VA"},{n:"Norfolk",a:"VA"},{n:"Richmond",a:"VA"},{n:"Virginia Beach",a:"VA"},
+    {n:"Bellevue",a:"WA"},{n:"Seattle",a:"WA"},{n:"Spokane",a:"WA"},{n:"Tacoma",a:"WA"},
+    {n:"Charleston",a:"WV"},{n:"Huntington",a:"WV"},
+    {n:"Green Bay",a:"WI"},{n:"Madison",a:"WI"},{n:"Milwaukee",a:"WI"},
+    {n:"Casper",a:"WY"},{n:"Cheyenne",a:"WY"},
+  ];
+
+  function makeLocationAC(inputEl){
+    const wrap = inputEl.parentElement;
+    const drop = document.createElement('ul');
+    drop.className = 'ac-drop';
+    wrap.appendChild(drop);
+    let activeIdx = -1, cur = [];
+
+    const isState = loc => !loc.n.includes(',') && LOCATIONS.indexOf(loc) < 51;
+
+    function query(q){
+      const ql = q.toLowerCase();
+      const starts = [], contains = [];
+      for(const loc of LOCATIONS){
+        const nl = loc.n.toLowerCase(), al = loc.a.toLowerCase();
+        const match = nl.startsWith(ql) || al === ql || al.startsWith(ql);
+        const cont  = !match && (nl.includes(ql));
+        if(match) starts.push(loc);
+        else if(cont) contains.push(loc);
+      }
+      return [...starts, ...contains].slice(0, 8);
+    }
+
+    function fill(loc){
+      const state = LOCATIONS.slice(0,51).find(s => s.n === loc.n);
+      if(state) return loc.n; // it's a state entry
+      return loc.n + ', ' + loc.a;
+    }
+
+    function setActive(i){
+      activeIdx = i;
+      drop.querySelectorAll('.ac-item').forEach((el,idx)=>el.classList.toggle('hi',idx===i));
+      const hi = drop.querySelectorAll('.ac-item')[i];
+      if(hi) hi.scrollIntoView({block:'nearest'});
+    }
+    function close(){ drop.classList.remove('open'); activeIdx=-1; cur=[]; }
+    function select(loc){ inputEl.value = fill(loc); close(); }
+
+    function render(results){
+      cur = results; activeIdx = -1; drop.innerHTML = '';
+      if(!results.length){ close(); return; }
+      results.forEach((loc,i)=>{
+        const li = document.createElement('li');
+        li.className = 'ac-item';
+        const stateEntry = LOCATIONS.slice(0,51).find(s => s.n === loc.n);
+        if(stateEntry){
+          li.innerHTML = loc.n + ' <span class="ac-sub">' + loc.a + '</span>';
+        } else {
+          li.innerHTML = loc.n + ' <span class="ac-sub">' + loc.a + '</span>';
+        }
+        li.addEventListener('mousedown', e=>{ e.preventDefault(); select(loc); });
+        li.addEventListener('mouseenter', ()=>setActive(i));
+        drop.appendChild(li);
+      });
+      drop.classList.add('open');
+    }
+
+    inputEl.addEventListener('input',()=>{ const q=inputEl.value.trim(); if(q.length<1){close();return;} render(query(q)); });
+    inputEl.addEventListener('focus',()=>{ const q=inputEl.value.trim(); if(q.length>=1) render(query(q)); });
+    inputEl.addEventListener('blur',()=>setTimeout(close,150));
+    inputEl.addEventListener('keydown',e=>{
+      if(!drop.classList.contains('open')) return;
+      const items=drop.querySelectorAll('.ac-item');
+      if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(activeIdx+1,items.length-1));}
+      else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(activeIdx-1,0));}
+      else if(e.key==='Enter'){if(activeIdx>=0&&cur[activeIdx]){e.preventDefault();select(cur[activeIdx]);}}
+      else if(e.key==='Escape'){e.preventDefault();close();}
+    });
+  }
+
+  makeLocationAC(document.getElementById('locationInput'));
 </script>
 
 </body>
