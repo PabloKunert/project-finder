@@ -44,9 +44,8 @@ export default {
       body,
     });
 
-    const text = await upstream.text();
-
-    return new Response(text, {
+    // Pipe stream directly — no buffering, avoids the 30s worker timeout
+    return new Response(upstream.body, {
       status:  upstream.status,
       headers: { "Content-Type": "application/json", ...CORS },
     });
