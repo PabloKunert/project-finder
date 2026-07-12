@@ -151,6 +151,35 @@
     line-height:1.5;
   }
 
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    margin-top:16px;
+  }
+  .chip-label{
+    font-family:'Overpass', sans-serif;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(247,245,239,0.55);
+    margin-right:2px;
+  }
+  .chip{
+    background:rgba(247,245,239,0.1);
+    border:1px solid rgba(247,245,239,0.3);
+    color:var(--line-white);
+    font-family:'Inter', sans-serif;
+    font-size:12.5px;
+    padding:6px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background 0.15s ease, border-color 0.15s ease;
+  }
+  .chip:hover{ background:rgba(255,198,41,0.18); border-color:var(--sign-yellow); }
+
   /* ---------- Results section ---------- */
   .results-section{
     max-width:880px;
@@ -161,11 +190,18 @@
     font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     color:var(--muted);
-    margin-bottom:18px;
+    margin-bottom:6px;
     min-height:18px;
     display:flex;
     align-items:center;
     gap:10px;
+  }
+  .search-note{
+    font-size:12.5px;
+    color:var(--muted);
+    font-style:italic;
+    margin-bottom:18px;
+    line-height:1.5;
   }
   .scan{
     width:16px; height:16px;
@@ -181,6 +217,52 @@
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
   .results-list{ display:flex; flex-direction:column; gap:14px; }
+
+  .planrooms{
+    background:#fff;
+    border:1px solid var(--concrete-2);
+    border-radius:var(--radius);
+    padding:14px 18px;
+    margin-bottom:18px;
+  }
+  .planrooms-label{
+    font-family:'Overpass', sans-serif;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 10px;
+  }
+  .planroom-links{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .planroom-link{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter', sans-serif;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--ink);
+    text-decoration:none;
+    background:var(--concrete);
+    border:1px solid var(--concrete-2);
+    padding:7px 12px;
+    border-radius:7px;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .planroom-link:hover{ border-color:var(--route-green); background:#fff; }
+  .planroom-link .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  .planroom-link.deep .tag{ color:var(--route-green); }
 
   .card{
     background:#fff;
@@ -217,6 +299,8 @@
   .badge.open{ background:var(--route-green); }
   .badge.closing_soon{ background:var(--sign-yellow); color:var(--ink); }
   .badge.closed{ background:var(--muted); }
+  .badge.reference{ background:var(--asphalt-3); }
+  .card.is-reference{ border-left-style:dashed; }
 
   .agency{
     font-size:13px;
@@ -296,7 +380,7 @@
   }
 
   /* ---------- Location autocomplete ---------- */
-  .ac-wrap{ position:relative; }
+  .ac-wrap{ position:relative; flex:1 1 160px; }
   .ac-drop{
     position:absolute;
     top:calc(100% + 4px);
@@ -314,12 +398,7 @@
     pointer-events:none;
     box-shadow:0 8px 24px rgba(0,0,0,0.10);
   }
-  .ac-drop.open{
-    max-height:272px;
-    opacity:1;
-    overflow-y:auto;
-    pointer-events:all;
-  }
+  .ac-drop.open{ max-height:272px; opacity:1; overflow-y:auto; pointer-events:all; }
   .ac-item{
     padding:9px 13px;
     font-family:'Inter', sans-serif;
@@ -332,15 +411,8 @@
     text-overflow:ellipsis;
   }
   .ac-item:last-child{ border-bottom:none; }
-  .ac-item:hover,.ac-item.hi{
-    background:rgba(11,93,59,.07);
-    color:var(--route-green);
-  }
-  .ac-item .ac-sub{
-    font-size:11px;
-    color:var(--muted);
-    margin-left:6px;
-  }
+  .ac-item:hover,.ac-item.hi{ background:rgba(11,93,59,.07); color:var(--route-green); }
+  .ac-sub{ font-size:11px; color:var(--muted); margin-left:6px; }
 </style>
 </head>
 <body>
@@ -359,8 +431,8 @@
     <h1>Government Bid Leads</h1>
     <form class="search-row" id="searchForm">
       <input type="text" id="queryInput" value="StreetBond 120" aria-label="Product or search term" autocomplete="off">
-      <div class="ac-wrap" style="flex:1 1 160px">
-        <input type="text" id="locationInput" placeholder="State or city" aria-label="Location filter" autocomplete="off" style="width:100%">
+      <div class="ac-wrap">
+        <input type="text" id="locationInput" placeholder="State or city (optional)" aria-label="Location filter" autocomplete="off">
       </div>
       <select id="levelSelect" aria-label="Government level">
         <option value="all">All levels</option>
@@ -370,45 +442,60 @@
       </select>
       <button type="submit" class="go-btn" id="goBtn">GO</button>
     </form>
+    <div class="chip-row" id="chipRow">
+      <span class="chip-label">Try:</span>
+      <button type="button" class="chip" data-q="StreetBond">StreetBond</button>
+      <button type="button" class="chip" data-q="StreetBond DA">StreetBond DA</button>
+      <button type="button" class="chip" data-q="Transpo Industries StreetBond">Transpo Industries StreetBond</button>
+      <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
+      <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
+    </div>
   </div>
   <p class="disclaimer">Results are pulled live via web search and summarized — always confirm scope, dates, and value on the official solicitation before bidding.</p>
 </div>
 
 <div class="results-section">
   <div class="status-line" id="statusLine"></div>
+  <div class="search-note" id="searchNote"></div>
+
+  <div class="planrooms" id="planrooms">
+    <p class="planrooms-label">Check these plan rooms directly</p>
+    <div class="planroom-links" id="planroomLinks"></div>
+  </div>
+
   <div class="results-list" id="resultsList"></div>
 </div>
 
 <footer>BidRoute · live search, not affiliated with any bid platform or agency.</footer>
 
 <script>
-  // Replace with the URL shown after running: npx wrangler deploy (in bizztrip/proxy/)
+  // Cloudflare Worker proxy — deployed from proxy/worker.js
   const PROXY_URL = "https://gh-pages-proxy.pablo-kunert.workers.dev";
 
-  const SYSTEM_PROMPT = `You are a procurement research assistant. Your job is to find REAL, CURRENTLY OPEN OR RECENTLY POSTED government contract opportunities, RFPs, ITBs, or bid solicitations that specifically call for, specify, or reference the product/material the user names.
-
-Search live using web search across these primary sources:
-- SAM.gov (federal)
-- State DOT bid-letting portals (CALTRANS, TxDOT, FDOT, etc.)
-- VendorLine / PlanetBids (vendorline.com / planetbids.com) — government bid board for public agencies
-- Crisp Plan Room (crispplanroom.com) — California school districts and public works plan room
-- SecureBids (securebids.com) — public agency secure bid submission platform
-- Municipal and county procurement portals
-- BidNet, PublicPurchase, DemandStar
+  const SYSTEM_PROMPT = `You are a procurement research assistant. You get exactly ONE web search for this request. Use it to look for real government construction/procurement bid opportunities, RFPs, or awarded projects that reference the product or category given.
 
 Rules:
-- Only include opportunities you actually found via search. Never invent agencies, projects, or URLs.
-- Prefer opportunities that are currently open for bidding. Include recently closed ones only if nothing open is found, and mark status accordingly.
-- Each result must include a real sourceUrl found via search.
-- Keep each snippet under 20 words.
-- Return at most 6 results.
+- Call web_search exactly once, then immediately write your final answer as JSON. Do not search again.
+- Only include things you actually found in the search results. Never invent agencies, projects, or URLs.
+- Every result needs "type": "open_bid" (currently open/recent solicitation) or "reference_project" (completed/awarded project — still a useful lead).
+- For open_bid, status is open|closing_soon|closed. For reference_project, status is "unknown".
+- Keep each snippet under 12 words.
+- Return AT MOST 2 results. Fewer, complete results beat more, truncated ones.
+- The "note" field is REQUIRED on every response — one short sentence stating what you searched and roughly how many relevant hits came back.
+- Write the JSON as your last step and finish it completely — nothing after the closing brace.
 - Respond with ONLY raw JSON, no markdown code fences, no commentary before or after, matching exactly this schema:
-{"results":[{"title":"string","agency":"string","location":"string","status":"open|closing_soon|closed|unknown","deadline":"string or empty","estimatedValue":"string or empty","sourceUrl":"string","snippet":"string"}],"note":"string, only include if results is empty, explaining what was searched"}`;
+{"results":[{"title":"string","agency":"string","location":"string","type":"open_bid|reference_project","status":"open|closing_soon|closed|unknown","deadline":"string or empty","estimatedValue":"string or empty","sourceUrl":"string","snippet":"string"}],"note":"string, always include"}`;
 
   function buildUserPrompt(query, location, level){
     const levelText = level === 'all' ? '' : ` at the ${level} government level`;
     const locText = location ? ` in ${location}` : ' anywhere in the United States';
-    return `Find current government construction or procurement bid opportunities${levelText} that specify or reference "${query}"${locText}. Use web search now and return only the JSON schema described.`;
+    return `Search once for government construction or procurement leads${levelText} related to "${query}"${locText}. Return only the JSON schema described.`;
+  }
+
+  function deriveFallbackQuery(query){
+    const stripped = query.replace(/\s+[\w-]*\d[\w-]*$/, '').trim();
+    if(stripped && stripped.toLowerCase() !== query.trim().toLowerCase()){ return stripped; }
+    return 'decorative pavement coating government bid';
   }
 
   function escapeHtml(str){
@@ -426,9 +513,38 @@ Rules:
     let t = text.trim();
     t = t.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
     const start = t.indexOf('{');
-    const end = t.lastIndexOf('}');
-    if(start >= 0 && end > start){ t = t.substring(start, end+1); }
-    return JSON.parse(t);
+    if(start < 0){ throw new Error('No JSON object found in the response.'); }
+    t = t.substring(start);
+    try{ return JSON.parse(t); }
+    catch(e){ return repairTruncatedJson(t); }
+  }
+
+  function repairTruncatedJson(t){
+    const resultsIdx = t.indexOf('"results"');
+    if(resultsIdx < 0){ throw new Error('Response was cut off before any results could be read.'); }
+    const arrStart = t.indexOf('[', resultsIdx);
+    if(arrStart < 0){ throw new Error('Response was cut off before any results could be read.'); }
+    let depth = 0, objStart = -1, inString = false, escape = false;
+    const objects = [];
+    for(let i = arrStart + 1; i < t.length; i++){
+      const ch = t[i];
+      if(inString){
+        if(escape){ escape = false; }
+        else if(ch === '\\'){ escape = true; }
+        else if(ch === '"'){ inString = false; }
+        continue;
+      }
+      if(ch === '"'){ inString = true; continue; }
+      if(ch === '{'){ if(depth === 0){ objStart = i; } depth++; }
+      else if(ch === '}'){
+        depth--;
+        if(depth === 0 && objStart >= 0){ objects.push(t.substring(objStart, i + 1)); objStart = -1; }
+      } else if(ch === ']' && depth === 0){ break; }
+    }
+    const parsedObjects = [];
+    for(const raw of objects){ try{ parsedObjects.push(JSON.parse(raw)); }catch(e){} }
+    if(parsedObjects.length === 0){ throw new Error('Response was cut off before any complete result could be read.'); }
+    return { results: parsedObjects, _partial: true };
   }
 
   const statusLabels = { open:'Open', closing_soon:'Closing soon', closed:'Closed', unknown:'Status unknown' };
@@ -441,10 +557,7 @@ Rules:
     for(let i = 0; i < localStorage.length; i++){
       const key = localStorage.key(i);
       if(key && key.startsWith('bidroute:saved:')){
-        try{
-          const id = key.replace('bidroute:saved:', '');
-          savedMap[id] = JSON.parse(localStorage.getItem(key));
-        }catch(e){}
+        try{ savedMap[key.replace('bidroute:saved:','')] = JSON.parse(localStorage.getItem(key)); }catch(e){}
       }
     }
     updateSavedCount();
@@ -461,9 +574,7 @@ Rules:
       localStorage.removeItem('bidroute:saved:' + id);
     } else {
       savedMap[id] = project;
-      try{ localStorage.setItem('bidroute:saved:' + id, JSON.stringify(project)); }catch(e){
-        console.error('Could not save lead', e);
-      }
+      try{ localStorage.setItem('bidroute:saved:' + id, JSON.stringify(project)); }catch(e){}
     }
     updateSavedCount();
     render(viewingSaved ? Object.values(savedMap) : lastResults);
@@ -471,35 +582,37 @@ Rules:
 
   function cardHtml(project){
     const id = slugId((project.sourceUrl || '') + (project.title || ''));
+    const isReference = project.type === 'reference_project';
     const status = (project.status || 'unknown');
-    const label = statusLabels[status] || 'Status unknown';
+    const label = isReference ? 'Reference project' : (statusLabels[status] || 'Status unknown');
+    const badgeClass = isReference ? 'reference' : status;
     const isSaved = !!savedMap[id];
     return `
-      <div class="card status-${escapeHtml(status)}">
+      <div class="card status-${escapeHtml(status)} ${isReference ? 'is-reference' : ''}">
         <div class="card-top">
           <span class="agency">${escapeHtml(project.agency || 'Agency not specified')}</span>
-          <span class="badge ${escapeHtml(status)}">${escapeHtml(label)}</span>
+          <span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(label)}</span>
         </div>
         <h3>${escapeHtml(project.title || 'Untitled solicitation')}</h3>
         <div class="meta-row">
           <span><b>Location</b>${escapeHtml(project.location || '—')}</span>
-          <span><b>Deadline</b>${escapeHtml(project.deadline || '—')}</span>
+          <span><b>${isReference ? 'Completed' : 'Deadline'}</b>${escapeHtml(project.deadline || '—')}</span>
           <span><b>Est. value</b>${escapeHtml(project.estimatedValue || '—')}</span>
         </div>
         <p class="snippet">${escapeHtml(project.snippet || '')}</p>
         <div class="card-actions">
-          ${project.sourceUrl ? `<a class="view-link" href="${escapeHtml(project.sourceUrl)}" target="_blank" rel="noopener noreferrer">View solicitation ↗</a>` : ''}
+          ${project.sourceUrl ? `<a class="view-link" href="${escapeHtml(project.sourceUrl)}" target="_blank" rel="noopener noreferrer">${isReference ? 'View source ↗' : 'View solicitation ↗'}</a>` : ''}
           <button class="save-btn ${isSaved ? 'saved' : ''}" data-id="${id}">${isSaved ? '★ Saved' : '☆ Save'}</button>
         </div>
       </div>`;
   }
 
-  function render(list){
+  function render(list, note){
     const container = document.getElementById('resultsList');
     if(!list || list.length === 0){
       container.innerHTML = viewingSaved
         ? `<div class="empty-state"><h3>No saved leads yet</h3><p>Save a result and it'll show up here.</p></div>`
-        : `<div class="empty-state"><h3>No matching opportunities found</h3><p>Try a broader location, a different government level, or check back later — new solicitations post daily.</p></div>`;
+        : `<div class="empty-state"><h3>No matching opportunities found</h3><p>${note ? escapeHtml(note) : 'Try a broader term using the chips above, a different location, or another government level.'}</p></div>`;
       return;
     }
     container.innerHTML = list.map(cardHtml).join('');
@@ -516,43 +629,76 @@ Rules:
     document.getElementById('statusLine').innerHTML = (spinning ? '<span class="scan"></span>' : '') + html;
   }
 
+  async function searchOnce(query, location, level){
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: buildUserPrompt(query, location, level) }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }],
+        tool_choice: { type: 'tool', name: 'web_search' }
+      })
+    });
+    if(!response.ok){ throw new Error(`Search request failed (${response.status})`); }
+    const data = await response.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    if(!textBlocks.trim()){ throw new Error('No response text returned from search.'); }
+    return extractJson(textBlocks);
+  }
+
+  function renderPlanroomLinks(query){
+    const q = encodeURIComponent(query);
+    const links = [
+      { name:'Crisp Planroom',          tag:'deep link',       deep:true,  url:`https://www.crispplanroom.com/projects/public?search=${q}`,  note:'Searches project titles · SoCal school districts only' },
+      { name:'VendorLine (PlanetBids)', tag:'browse only',     deep:false, url:'https://vendor.planetbids.com/nationwide-bids',               note:'Keyword search requires free registration' },
+      { name:'SecureBids',              tag:'browse only',     deep:false, url:'https://securebids.com/agencies',                             note:'Browse by agency — no keyword search' },
+      { name:'ConstructConnect',        tag:'requires signup', deep:false, url:'https://www.constructconnect.com/find-projects',              note:'Gated behind a contact form before search' },
+    ];
+    document.getElementById('planroomLinks').innerHTML = links.map(l =>
+      `<a class="planroom-link ${l.deep?'deep':''}" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(l.note)}">
+        ${escapeHtml(l.name)} <span class="tag">${escapeHtml(l.tag)}</span>
+      </a>`).join('');
+  }
+
   async function search(query, location, level){
     viewingSaved = false;
     document.getElementById('savedToggle').classList.remove('active');
     document.getElementById('goBtn').disabled = true;
-    setStatus(`Searching state DOT, municipal, and federal bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
+    setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
+    document.getElementById('searchNote').textContent = '';
     document.getElementById('resultsList').innerHTML = '';
+    renderPlanroomLinks(query);
 
     try{
-      const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: buildUserPrompt(query, location, level) }],
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }]
-        })
-      });
+      let parsed = await searchOnce(query, location, level);
+      const notes = [];
+      if(parsed.note) notes.push(parsed.note);
 
-      if(!response.ok){
-        throw new Error(`Search request failed (${response.status})`);
+      if((parsed.results || []).length === 0){
+        const fallbackQuery = deriveFallbackQuery(query);
+        if(fallbackQuery.toLowerCase() !== query.trim().toLowerCase()){
+          setStatus(`No hits for &ldquo;${escapeHtml(query)}&rdquo; — trying &ldquo;${escapeHtml(fallbackQuery)}&rdquo;&hellip;`, true);
+          const parsed2 = await searchOnce(fallbackQuery, location, level);
+          if(parsed2.note) notes.push(parsed2.note);
+          if((parsed2.results || []).length > 0){ parsed = parsed2; }
+        }
       }
 
-      const data = await response.json();
-      const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
-      if(!textBlocks.trim()){ throw new Error('No response text returned from search.'); }
-
-      const parsed = extractJson(textBlocks);
       lastResults = parsed.results || [];
+      const combinedNote = notes.join('  ·  ');
 
       if(lastResults.length === 0){
-        setStatus(parsed.note ? escapeHtml(parsed.note) : 'No results found for this search.', false);
+        setStatus('No results.', false);
+      } else if(parsed._partial){
+        setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} recovered from a cut-off response — try again for a cleaner pass.`, false);
       } else {
-        setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} found · sourced via live web search, ${new Date().toLocaleTimeString()}`, false);
+        setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} found · ${new Date().toLocaleTimeString()}`, false);
       }
-      render(lastResults);
+      document.getElementById('searchNote').textContent = combinedNote;
+      render(lastResults, combinedNote);
     } catch(err){
       console.error(err);
       document.getElementById('resultsList').innerHTML = `<div class="error-state"><h3>Search didn't go through</h3><p>${escapeHtml(err.message || 'Something went wrong reaching the search service.')} Try again in a moment.</p></div>`;
@@ -564,16 +710,25 @@ Rules:
 
   document.getElementById('searchForm').addEventListener('submit', (e)=>{
     e.preventDefault();
-    const query = document.getElementById('queryInput').value.trim() || 'StreetBond 120';
-    const location = document.getElementById('locationInput').value.trim();
-    const level = document.getElementById('levelSelect').value;
-    search(query, location, level);
+    search(
+      document.getElementById('queryInput').value.trim() || 'StreetBond 120',
+      document.getElementById('locationInput').value.trim(),
+      document.getElementById('levelSelect').value
+    );
+  });
+
+  document.getElementById('chipRow').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.chip');
+    if(!btn) return;
+    document.getElementById('queryInput').value = btn.getAttribute('data-q');
+    search(btn.getAttribute('data-q'), document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
   });
 
   document.getElementById('savedToggle').addEventListener('click', ()=>{
     viewingSaved = !viewingSaved;
     document.getElementById('savedToggle').classList.toggle('active', viewingSaved);
     if(viewingSaved){
+      document.getElementById('searchNote').textContent = '';
       setStatus(`Showing ${Object.keys(savedMap).length} saved lead${Object.keys(savedMap).length===1?'':'s'}`, false);
       render(Object.values(savedMap));
     } else {
@@ -582,12 +737,8 @@ Rules:
     }
   });
 
-  loadSaved();
-  search('StreetBond 120', '', 'all');
-
   /* ---- Location autocomplete ---- */
   const LOCATIONS = [
-    // States
     {n:"Alabama",a:"AL"},{n:"Alaska",a:"AK"},{n:"Arizona",a:"AZ"},{n:"Arkansas",a:"AR"},
     {n:"California",a:"CA"},{n:"Colorado",a:"CO"},{n:"Connecticut",a:"CT"},{n:"Delaware",a:"DE"},
     {n:"Florida",a:"FL"},{n:"Georgia",a:"GA"},{n:"Hawaii",a:"HI"},{n:"Idaho",a:"ID"},
@@ -601,10 +752,9 @@ Rules:
     {n:"South Dakota",a:"SD"},{n:"Tennessee",a:"TN"},{n:"Texas",a:"TX"},{n:"Utah",a:"UT"},
     {n:"Vermont",a:"VT"},{n:"Virginia",a:"VA"},{n:"Washington",a:"WA"},{n:"West Virginia",a:"WV"},
     {n:"Wisconsin",a:"WI"},{n:"Wyoming",a:"WY"},{n:"Washington D.C.",a:"DC"},
-    // Cities
     {n:"Birmingham",a:"AL"},{n:"Huntsville",a:"AL"},{n:"Mobile",a:"AL"},{n:"Montgomery",a:"AL"},
     {n:"Anchorage",a:"AK"},{n:"Fairbanks",a:"AK"},
-    {n:"Chandler",a:"AZ"},{n:"Flagstaff",a:"AZ"},{n:"Mesa",a:"AZ"},{n:"Phoenix",a:"AZ"},{n:"Scottsdale",a:"AZ"},{n:"Tempe",a:"AZ"},{n:"Tucson",a:"AZ"},
+    {n:"Chandler",a:"AZ"},{n:"Flagstaff",a:"AZ"},{n:"Mesa",a:"AZ"},{n:"Phoenix",a:"AZ"},{n:"Scottsdale",a:"AZ"},{n:"Tucson",a:"AZ"},
     {n:"Fayetteville",a:"AR"},{n:"Fort Smith",a:"AR"},{n:"Little Rock",a:"AR"},
     {n:"Bakersfield",a:"CA"},{n:"Fresno",a:"CA"},{n:"Irvine",a:"CA"},{n:"Long Beach",a:"CA"},{n:"Los Angeles",a:"CA"},{n:"Oakland",a:"CA"},{n:"Riverside",a:"CA"},{n:"Sacramento",a:"CA"},{n:"San Diego",a:"CA"},{n:"San Francisco",a:"CA"},{n:"San Jose",a:"CA"},{n:"Santa Ana",a:"CA"},{n:"Santa Barbara",a:"CA"},{n:"Stockton",a:"CA"},
     {n:"Aurora",a:"CO"},{n:"Colorado Springs",a:"CO"},{n:"Denver",a:"CO"},{n:"Fort Collins",a:"CO"},{n:"Pueblo",a:"CO"},
@@ -614,7 +764,7 @@ Rules:
     {n:"Atlanta",a:"GA"},{n:"Augusta",a:"GA"},{n:"Columbus",a:"GA"},{n:"Savannah",a:"GA"},
     {n:"Honolulu",a:"HI"},
     {n:"Boise",a:"ID"},{n:"Idaho Falls",a:"ID"},{n:"Nampa",a:"ID"},
-    {n:"Aurora",a:"IL"},{n:"Chicago",a:"IL"},{n:"Naperville",a:"IL"},{n:"Peoria",a:"IL"},{n:"Rockford",a:"IL"},{n:"Springfield",a:"IL"},
+    {n:"Chicago",a:"IL"},{n:"Naperville",a:"IL"},{n:"Peoria",a:"IL"},{n:"Rockford",a:"IL"},{n:"Springfield",a:"IL"},
     {n:"Evansville",a:"IN"},{n:"Fort Wayne",a:"IN"},{n:"Indianapolis",a:"IN"},{n:"South Bend",a:"IN"},
     {n:"Cedar Rapids",a:"IA"},{n:"Davenport",a:"IA"},{n:"Des Moines",a:"IA"},
     {n:"Kansas City",a:"KS"},{n:"Overland Park",a:"KS"},{n:"Topeka",a:"KS"},{n:"Wichita",a:"KS"},
@@ -654,6 +804,8 @@ Rules:
     {n:"Casper",a:"WY"},{n:"Cheyenne",a:"WY"},
   ];
 
+  const STATE_COUNT = 51;
+
   function makeLocationAC(inputEl){
     const wrap = inputEl.parentElement;
     const drop = document.createElement('ul');
@@ -661,25 +813,20 @@ Rules:
     wrap.appendChild(drop);
     let activeIdx = -1, cur = [];
 
-    const isState = loc => !loc.n.includes(',') && LOCATIONS.indexOf(loc) < 51;
-
     function query(q){
       const ql = q.toLowerCase();
       const starts = [], contains = [];
       for(const loc of LOCATIONS){
         const nl = loc.n.toLowerCase(), al = loc.a.toLowerCase();
-        const match = nl.startsWith(ql) || al === ql || al.startsWith(ql);
-        const cont  = !match && (nl.includes(ql));
-        if(match) starts.push(loc);
-        else if(cont) contains.push(loc);
+        if(nl.startsWith(ql) || al === ql || al.startsWith(ql)) starts.push(loc);
+        else if(nl.includes(ql)) contains.push(loc);
       }
       return [...starts, ...contains].slice(0, 8);
     }
 
     function fill(loc){
-      const state = LOCATIONS.slice(0,51).find(s => s.n === loc.n);
-      if(state) return loc.n; // it's a state entry
-      return loc.n + ', ' + loc.a;
+      const isState = LOCATIONS.indexOf(loc) < STATE_COUNT;
+      return isState ? loc.n : loc.n + ', ' + loc.a;
     }
 
     function setActive(i){
@@ -697,12 +844,7 @@ Rules:
       results.forEach((loc,i)=>{
         const li = document.createElement('li');
         li.className = 'ac-item';
-        const stateEntry = LOCATIONS.slice(0,51).find(s => s.n === loc.n);
-        if(stateEntry){
-          li.innerHTML = loc.n + ' <span class="ac-sub">' + loc.a + '</span>';
-        } else {
-          li.innerHTML = loc.n + ' <span class="ac-sub">' + loc.a + '</span>';
-        }
+        li.innerHTML = escapeHtml(loc.n) + ' <span class="ac-sub">' + escapeHtml(loc.a) + '</span>';
         li.addEventListener('mousedown', e=>{ e.preventDefault(); select(loc); });
         li.addEventListener('mouseenter', ()=>setActive(i));
         drop.appendChild(li);
@@ -710,7 +852,7 @@ Rules:
       drop.classList.add('open');
     }
 
-    inputEl.addEventListener('input',()=>{ const q=inputEl.value.trim(); if(q.length<1){close();return;} render(query(q)); });
+    inputEl.addEventListener('input',()=>{ const q=inputEl.value.trim(); q.length<1?close():render(query(q)); });
     inputEl.addEventListener('focus',()=>{ const q=inputEl.value.trim(); if(q.length>=1) render(query(q)); });
     inputEl.addEventListener('blur',()=>setTimeout(close,150));
     inputEl.addEventListener('keydown',e=>{
@@ -718,12 +860,14 @@ Rules:
       const items=drop.querySelectorAll('.ac-item');
       if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(activeIdx+1,items.length-1));}
       else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(activeIdx-1,0));}
-      else if(e.key==='Enter'){if(activeIdx>=0&&cur[activeIdx]){e.preventDefault();select(cur[activeIdx]);}}
+      else if(e.key==='Enter'&&activeIdx>=0&&cur[activeIdx]){e.preventDefault();select(cur[activeIdx]);}
       else if(e.key==='Escape'){e.preventDefault();close();}
     });
   }
 
+  loadSaved();
   makeLocationAC(document.getElementById('locationInput'));
+  search('StreetBond 120', '', 'all');
 </script>
 
 </body>
