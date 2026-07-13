@@ -579,6 +579,31 @@
   @media (max-width:390px){
     .alerts-badge{ display:none; }
   }
+
+  /* ---------- Planroom login links ---------- */
+  .planroom-item{ display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+  .planroom-login-link{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px; font-weight:500;
+    color:var(--route-green);
+    text-decoration:none;
+    padding:5px 9px;
+    border-radius:6px;
+    border:1px solid rgba(11,93,59,0.3);
+    background:rgba(11,93,59,0.05);
+    white-space:nowrap;
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .planroom-login-link:hover{ background:rgba(11,93,59,0.12); border-color:var(--route-green); }
+  .planroom-no-login{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    color:var(--muted); font-style:italic; white-space:nowrap;
+  }
+  .planroom-cred-note{
+    font-size:11px; color:var(--muted); font-style:italic;
+    margin:10px 0 0; line-height:1.45; width:100%;
+  }
 </style>
 </head>
 <body>
@@ -834,16 +859,52 @@ Rules:
 
   function renderPlanroomLinks(query){
     const q = encodeURIComponent(query);
-    const links = [
-      { name:'Crisp Planroom',          tag:'deep link',       deep:true,  url:`https://www.crispplanroom.com/projects/public?search=${q}`,  note:'Searches project titles · SoCal school districts only' },
-      { name:'VendorLine (PlanetBids)', tag:'browse only',     deep:false, url:'https://vendor.planetbids.com/nationwide-bids',               note:'Keyword search requires free registration' },
-      { name:'SecureBids',              tag:'browse only',     deep:false, url:'https://securebids.com/agencies',                             note:'Browse by agency — no keyword search' },
-      { name:'ConstructConnect',        tag:'requires signup', deep:false, url:'https://www.constructconnect.com/find-projects',              note:'Gated behind a contact form before search' },
+    // Login URL for Crisp deep-links to the search after auth via their redirect= param
+    const crispLoginUrl = 'https://www.crispplanroom.com/auth/login?redirect='
+      + encodeURIComponent('https://www.crispplanroom.com/projects/public?search=' + query);
+
+    const rooms = [
+      {
+        name: 'Crisp Planroom', tag: 'deep link', deep: true,
+        browseUrl: `https://www.crispplanroom.com/projects/public?search=${q}`,
+        browseNote: 'Searches project titles · SoCal school districts only',
+        loginUrl: crispLoginUrl,
+        loginNote: 'Lands on your search after login',
+      },
+      {
+        name: 'VendorLine (PlanetBids)', tag: 'browse only', deep: false,
+        browseUrl: 'https://vendor.planetbids.com/nationwide-bids',
+        browseNote: 'Keyword search requires free registration',
+        loginUrl: 'https://vendorline.planetbids.com/login',
+        loginNote: 'Log in to search nationwide bids',
+      },
+      {
+        name: 'SecureBids', tag: 'per-agency', deep: false,
+        browseUrl: 'https://securebids.com/agencies',
+        browseNote: 'Browse agencies — login is on each agency\'s own page',
+        loginUrl: null,
+        loginNote: 'No central login — find your agency above, then log in from their page',
+      },
+      {
+        name: 'ConstructConnect', tag: 'requires signup', deep: false,
+        browseUrl: 'https://www.constructconnect.com/find-projects',
+        browseNote: 'Full access requires a paid subscription',
+        loginUrl: 'https://login.io.constructconnect.com/login',
+        loginNote: 'Log in to your ConstructConnect account',
+      },
     ];
-    document.getElementById('planroomLinks').innerHTML = links.map(l =>
-      `<a class="planroom-link ${l.deep?'deep':''}" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(l.note)}">
-        ${escapeHtml(l.name)} <span class="tag">${escapeHtml(l.tag)}</span>
-      </a>`).join('');
+
+    document.getElementById('planroomLinks').innerHTML = rooms.map(r => `
+      <div class="planroom-item">
+        <a class="planroom-link ${r.deep?'deep':''}" href="${escapeHtml(r.browseUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(r.browseNote)}">
+          ${escapeHtml(r.name)} <span class="tag">${escapeHtml(r.tag)}</span>
+        </a>
+        ${r.loginUrl
+          ? `<a class="planroom-login-link" href="${escapeHtml(r.loginUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(r.loginNote)}">Log in ↗</a>`
+          : `<span class="planroom-no-login" title="${escapeHtml(r.loginNote)}">login: per-agency</span>`
+        }
+      </div>`).join('')
+      + `<p class="planroom-cred-note">Logins open on each plan room's own site — BidRoute never sees or stores your credentials.</p>`;
   }
 
   let searchAbortController = null;
