@@ -318,6 +318,7 @@
     letter-spacing:0.03em;
   }
   .planroom-link.deep .tag{ color:var(--route-green); }
+  .planroom-link.open-search .tag{ color:#1765C7; font-weight:600; }
 
   .card{
     background:#fff;
@@ -857,36 +858,63 @@ Rules:
     return extractJson(textBlocks);
   }
 
-  function renderPlanroomLinks(query){
+  function renderPlanroomLinks(query, location){
     const q = encodeURIComponent(query);
+    const loc = location || '';
+    const isCa = /\bCA\b/.test(loc) || /\bcalifornia\b/i.test(loc);
+
     // Login URL for Crisp deep-links to the search after auth via their redirect= param
     const crispLoginUrl = 'https://www.crispplanroom.com/auth/login?redirect='
       + encodeURIComponent('https://www.crispplanroom.com/projects/public?search=' + query);
 
+    // SAM.gov uses bracket-style array params; only encode the query value
+    const samUrl = `https://sam.gov/search/?index=opp&sfm[simpleSearch][keywordRadio]=ALL&sfm[simpleSearch][keywords][0]=${q}`;
+
     const rooms = [
+      // ── Open-search sources (no login required) ──────────────────────────
       {
-        name: 'Crisp Planroom', tag: 'deep link', deep: true,
+        name: 'SAM.gov', tag: 'open search', cls: 'open-search',
+        browseUrl: samUrl,
+        browseNote: 'Federal contract opportunities · keyword search, no login required',
+        loginUrl: null, loginNote: null,
+      },
+      {
+        name: 'BidNet Direct', tag: 'open search', cls: 'open-search',
+        browseUrl: `https://www.bidnetdirect.com/public/solicitations/open?keywords=${q}`,
+        browseNote: 'Multi-state & local bids · full listings may prompt registration',
+        loginUrl: null, loginNote: null,
+      },
+      // Cal eProcure: CA-only, shown conditionally; SPA cannot accept keyword via URL
+      ...(isCa ? [{
+        name: 'Cal eProcure (CSCR)', tag: 'browse only', cls: '',
+        browseUrl: 'https://caleprocure.ca.gov/pages/public-search.aspx',
+        browseNote: 'California State Contracts Register · enter keyword manually after landing (SPA — URL pre-fill not supported)',
+        loginUrl: null, loginNote: null,
+      }] : []),
+      // ── Gated / account-required sources ─────────────────────────────────
+      {
+        name: 'Crisp Planroom', tag: 'deep link', cls: 'deep',
         browseUrl: `https://www.crispplanroom.com/projects/public?search=${q}`,
         browseNote: 'Searches project titles · SoCal school districts only',
         loginUrl: crispLoginUrl,
         loginNote: 'Lands on your search after login',
       },
       {
-        name: 'VendorLine (PlanetBids)', tag: 'browse only', deep: false,
+        name: 'VendorLine (PlanetBids)', tag: 'browse only', cls: '',
         browseUrl: 'https://vendor.planetbids.com/nationwide-bids',
         browseNote: 'Keyword search requires free registration',
         loginUrl: 'https://vendorline.planetbids.com/login',
         loginNote: 'Log in to search nationwide bids',
       },
       {
-        name: 'SecureBids', tag: 'per-agency', deep: false,
+        name: 'SecureBids', tag: 'per-agency', cls: '',
         browseUrl: 'https://securebids.com/agencies',
         browseNote: 'Browse agencies — login is on each agency\'s own page',
         loginUrl: null,
         loginNote: 'No central login — find your agency above, then log in from their page',
       },
       {
-        name: 'ConstructConnect', tag: 'requires signup', deep: false,
+        name: 'ConstructConnect', tag: 'requires signup', cls: '',
         browseUrl: 'https://www.constructconnect.com/find-projects',
         browseNote: 'Full access requires a paid subscription',
         loginUrl: 'https://login.io.constructconnect.com/login',
@@ -896,12 +924,14 @@ Rules:
 
     document.getElementById('planroomLinks').innerHTML = rooms.map(r => `
       <div class="planroom-item">
-        <a class="planroom-link ${r.deep?'deep':''}" href="${escapeHtml(r.browseUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(r.browseNote)}">
+        <a class="planroom-link ${r.cls}" href="${escapeHtml(r.browseUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(r.browseNote)}">
           ${escapeHtml(r.name)} <span class="tag">${escapeHtml(r.tag)}</span>
         </a>
         ${r.loginUrl
           ? `<a class="planroom-login-link" href="${escapeHtml(r.loginUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(r.loginNote)}">Log in ↗</a>`
-          : `<span class="planroom-no-login" title="${escapeHtml(r.loginNote)}">login: per-agency</span>`
+          : r.loginNote
+            ? `<span class="planroom-no-login" title="${escapeHtml(r.loginNote)}">login: per-agency</span>`
+            : ''
         }
       </div>`).join('')
       + `<p class="planroom-cred-note">Logins open on each plan room's own site — BidRoute never sees or stores your credentials.</p>`;
@@ -929,7 +959,7 @@ Rules:
     document.getElementById('planrooms').open = false;
     document.getElementById('searchNoteWrap').hidden = true;
     document.getElementById('resultsList').innerHTML = '';
-    renderPlanroomLinks(query);
+    renderPlanroomLinks(query, location);
 
     setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
 
