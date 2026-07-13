@@ -489,6 +489,96 @@
   .ac-item:last-child{ border-bottom:none; }
   .ac-item:hover,.ac-item.hi{ background:rgba(11,93,59,.07); color:var(--route-green); }
   .ac-sub{ font-size:11px; color:var(--muted); margin-left:6px; }
+
+  /* ---------- Alerts ---------- */
+  .topbar-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .alerts-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:17px; height:17px;
+    background:var(--deadline-red); color:#fff;
+    font-size:10px; font-family:'Overpass',sans-serif; font-weight:700;
+    border-radius:999px; padding:0 4px; margin-left:4px; vertical-align:middle;
+  }
+  .watch-btn{
+    background:none;
+    border:1.5px solid var(--concrete-2);
+    color:var(--muted);
+    font-family:'Overpass',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:0.04em;
+    padding:4px 10px; border-radius:999px; cursor:pointer;
+    white-space:nowrap; transition:border-color 0.15s,color 0.15s,background 0.15s;
+  }
+  .watch-btn:hover{ border-color:var(--route-green); color:var(--route-green); }
+  .watch-btn.watching{ background:var(--route-green); color:#fff; border-color:var(--route-green); }
+  .alert-card{
+    background:#fff;
+    border:1px solid var(--concrete-2);
+    border-left:5px solid var(--route-green-2);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    animation:rise 0.2s ease both;
+  }
+  .alert-card-top{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; margin-bottom:4px; flex-wrap:wrap;
+  }
+  .alert-query{ font-family:'Overpass',sans-serif; font-weight:700; font-size:15px; }
+  .new-badge{
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.06em; text-transform:uppercase;
+    background:var(--deadline-red); color:#fff;
+    padding:3px 8px; border-radius:999px; white-space:nowrap; flex-shrink:0;
+  }
+  .alert-meta-row{
+    font-size:12.5px; color:var(--muted);
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px;
+  }
+  .alert-meta-row span::after{ content:'·'; margin-left:8px; }
+  .alert-meta-row span:last-child::after{ content:''; margin-left:0; }
+  .alert-dates{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+    color:var(--muted); margin-bottom:12px;
+  }
+  .alert-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .check-btn, .delete-alert-btn, .notify-toggle-btn{
+    font-family:'Overpass',sans-serif; font-weight:700;
+    font-size:12px; letter-spacing:0.03em;
+    padding:7px 12px; border-radius:7px; cursor:pointer;
+    border:1.5px solid var(--asphalt);
+  }
+  .check-btn{ background:var(--asphalt); color:var(--line-white); }
+  .check-btn:hover{ background:var(--asphalt-2); }
+  .check-btn:disabled{ opacity:0.6; cursor:wait; }
+  .delete-alert-btn{ background:#fff; color:var(--asphalt); }
+  .delete-alert-btn:hover{ border-color:var(--deadline-red); color:var(--deadline-red); }
+  .notify-toggle-btn{ background:#fff; color:var(--muted); border-color:var(--concrete-2); }
+  .notify-toggle-btn.on{ background:var(--route-green); color:#fff; border-color:var(--route-green); }
+  .alert-new-results{
+    margin-top:14px; border-top:1px dashed var(--deadline-red);
+    padding-top:12px;
+  }
+  .alert-new-results-label{
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--deadline-red); margin:0 0 10px;
+  }
+  details.alert-baseline-results{ margin-top:14px; border-top:1px solid var(--concrete-2); padding-top:12px; }
+  details.alert-baseline-results > summary{
+    list-style:none; display:flex; align-items:center; gap:4px;
+    cursor:pointer; user-select:none;
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);
+  }
+  details.alert-baseline-results > summary::-webkit-details-marker{ display:none; }
+  details.alert-baseline-results > summary::before{ content:'▸ '; font-size:10px; }
+  details.alert-baseline-results[open] > summary::before{ content:'▾ '; }
+  .alert-results-list{ display:flex; flex-direction:column; gap:10px; }
+  @media (max-width:480px){
+    .topbar-actions{ gap:6px; }
+  }
+  @media (max-width:390px){
+    .alerts-badge{ display:none; }
+  }
 </style>
 </head>
 <body>
@@ -498,7 +588,10 @@
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L22 8 V16 L12 22 L2 16 V8 Z" stroke="#F7F5EF" stroke-width="2" fill="#0B5D3B"/><path d="M12 8v8M8 12h8" stroke="#FFC629" stroke-width="2"/></svg>
     BidRoute
   </div>
-  <button class="saved-toggle" id="savedToggle">☆ Saved (<span id="savedCount">0</span>)</button>
+  <div class="topbar-actions">
+    <button class="saved-toggle" id="alertsToggle">⊙ Alerts (<span id="alertsCount">0</span>)<span class="alerts-badge" id="alertsBadge" hidden>0</span></button>
+    <button class="saved-toggle" id="savedToggle">☆ Saved (<span id="savedCount">0</span>)</button>
+  </div>
 </div>
 
 <div class="hero">
@@ -535,6 +628,7 @@
 <div class="results-section">
   <div class="status-bar">
     <div class="status-line" id="statusLine"></div>
+    <button class="watch-btn" id="watchBtn" hidden title="Save this search as a re-checkable alert">☆ Watch</button>
     <button class="cancel-btn" id="cancelBtn" hidden>✕ Cancel</button>
   </div>
   <details class="search-note-wrap" id="searchNoteWrap" hidden>
@@ -637,6 +731,9 @@ Rules:
   let lastResults = [];
   let savedMap = {};
   let viewingSaved = false;
+  let alertsMap = {};
+  let viewingAlerts = false;
+  let currentSearchCriteria = {query:'', location:'', level:'all'};
 
   function loadSaved(){
     for(let i = 0; i < localStorage.length; i++){
@@ -662,7 +759,8 @@ Rules:
       try{ localStorage.setItem('bidroute:saved:' + id, JSON.stringify(project)); }catch(e){}
     }
     updateSavedCount();
-    render(viewingSaved ? Object.values(savedMap) : lastResults);
+    if(viewingAlerts) renderAlertsView();
+    else render(viewingSaved ? Object.values(savedMap) : lastResults);
   }
 
   function cardHtml(project){
@@ -751,6 +849,7 @@ Rules:
   let searchAbortController = null;
 
   async function search(query, location, level){
+    currentSearchCriteria = {query, location, level};
     if(searchAbortController) searchAbortController.abort();
     searchAbortController = new AbortController();
     const { signal } = searchAbortController;
@@ -759,9 +858,12 @@ Rules:
     const startTime = Date.now();
 
     viewingSaved = false;
+    viewingAlerts = false;
     document.getElementById('savedToggle').classList.remove('active');
+    document.getElementById('alertsToggle').classList.remove('active');
     document.getElementById('goBtn').disabled = true;
     document.getElementById('cancelBtn').hidden = false;
+    document.getElementById('watchBtn').hidden = true;
     document.getElementById('planrooms').hidden = false;
     document.getElementById('planrooms').open = false;
     document.getElementById('searchNoteWrap').hidden = true;
@@ -827,6 +929,7 @@ Rules:
       document.getElementById('cancelBtn').hidden = true;
       document.getElementById('goBtn').disabled = false;
       searchAbortController = null;
+      updateWatchBtn();
     }
   }
 
@@ -857,15 +960,305 @@ Rules:
   document.getElementById('savedToggle').addEventListener('click', ()=>{
     viewingSaved = !viewingSaved;
     document.getElementById('savedToggle').classList.toggle('active', viewingSaved);
-    document.getElementById('planrooms').hidden = viewingSaved;
-    document.getElementById('searchNoteWrap').hidden = viewingSaved || !document.getElementById('searchNote').textContent;
     if(viewingSaved){
+      viewingAlerts = false;
+      document.getElementById('alertsToggle').classList.remove('active');
+      document.getElementById('planrooms').hidden = true;
+      document.getElementById('watchBtn').hidden = true;
+      document.getElementById('searchNoteWrap').hidden = true;
       setStatus(`Showing ${Object.keys(savedMap).length} saved lead${Object.keys(savedMap).length===1?'':'s'}`, false);
       render(Object.values(savedMap));
     } else {
+      document.getElementById('planrooms').hidden = false;
+      document.getElementById('searchNoteWrap').hidden = !document.getElementById('searchNote').textContent;
       setStatus(lastResults.length ? `${lastResults.length} result${lastResults.length===1?'':'s'} found` : '', false);
+      updateWatchBtn();
       render(lastResults);
     }
+  });
+
+  /* ================================================================
+     Saved Search Alerts
+     ================================================================ */
+
+  function alertId(query, location, level){
+    return 'a' + slugId(query + '|' + (location||'') + '|' + (level||'all'));
+  }
+  function resultFingerprint(r){ return slugId((r.sourceUrl||'') + (r.title||'')); }
+
+  /* ---- Storage ---- */
+  function loadAlerts(){
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(key && key.startsWith('bidroute:alert:')){
+        try{ const a = JSON.parse(localStorage.getItem(key)); if(a && a.id) alertsMap[a.id] = a; }catch(e){}
+      }
+    }
+    updateAlertsBadge();
+  }
+
+  function persistAlert(a){
+    try{ localStorage.setItem('bidroute:alert:' + a.id, JSON.stringify(a)); }catch(e){}
+  }
+
+  function removeAlert(id){
+    delete alertsMap[id];
+    localStorage.removeItem('bidroute:alert:' + id);
+    updateAlertsBadge();
+    if(viewingAlerts) renderAlertsView();
+  }
+
+  /* ---- Badge + watch button ---- */
+  function updateAlertsBadge(){
+    const total = Object.values(alertsMap).reduce((s,a)=>s+(a.newCount||0),0);
+    const count = Object.keys(alertsMap).length;
+    document.getElementById('alertsCount').textContent = count;
+    const badge = document.getElementById('alertsBadge');
+    if(total > 0){ badge.textContent = total; badge.hidden = false; }
+    else{ badge.hidden = true; }
+  }
+
+  function updateWatchBtn(){
+    const btn = document.getElementById('watchBtn');
+    const {query, location, level} = currentSearchCriteria;
+    if(!query || viewingAlerts || viewingSaved){ btn.hidden = true; return; }
+    const watching = !!alertsMap[alertId(query, location, level)];
+    btn.hidden = false;
+    btn.className = 'watch-btn' + (watching ? ' watching' : '');
+    btn.textContent = watching ? '★ Watching' : '☆ Watch';
+  }
+
+  /* ---- Check logic ---- */
+  async function checkAlert(a){
+    const ac = new AbortController();
+    const tid = setTimeout(()=>ac.abort(), 25000);
+    try{
+      const parsed = await searchOnce(a.query, a.location, a.level, ac.signal);
+      const results = parsed.results || [];
+      const newIds = results.map(resultFingerprint);
+      if(a.lastCheckedAt === null){
+        // First check: establish baseline — nothing counted as "new" yet
+        a.newResults = []; a.newCount = 0;
+      } else {
+        const prev = new Set(a.lastResultIds || []);
+        a.newResults = results.filter(r => !prev.has(resultFingerprint(r)));
+        a.newCount = a.newResults.length;
+      }
+      a.lastResultIds = newIds;
+      a.lastResults = results;
+      a.lastCheckedAt = Date.now();
+      persistAlert(a);
+      updateAlertsBadge();
+      return a.newCount;
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
+  /* ---- Save current search as alert ---- */
+  async function saveCurrentSearchAsAlert(){
+    const {query, location, level} = currentSearchCriteria;
+    if(!query) return;
+    const id = alertId(query, location, level);
+    if(alertsMap[id]){ updateWatchBtn(); return; }
+    const a = {
+      id, query, location, level,
+      createdAt: Date.now(),
+      lastCheckedAt: null,
+      lastResultIds: [],
+      lastResults: [],
+      newResults: [],
+      newCount: 0,
+      notifyEnabled: false,
+    };
+    alertsMap[id] = a;
+    persistAlert(a);
+    updateAlertsBadge();
+    updateWatchBtn();
+    // Baseline check — seeds lastResultIds so next check can find diffs
+    try{ await checkAlert(a); if(viewingAlerts) renderAlertsView(); }catch(e){}
+  }
+
+  /* ---- Notification API ---- */
+  async function requestNotifyPermission(){
+    if(!('Notification' in window)) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission === 'denied') return false;
+    return (await Notification.requestPermission()) === 'granted';
+  }
+
+  function fireNotification(a, count){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const sub = [a.location, a.level !== 'all' ? a.level : ''].filter(Boolean).join(' · ') || 'US-wide';
+    new Notification(`BidRoute: ${count} new result${count>1?'s':''} for "${a.query}"`, {
+      body: sub, tag: 'bidroute-' + a.id,
+    });
+  }
+
+  /* ---- Auto-check stale alerts on load ---- */
+  async function checkStaleAlerts(){
+    const STALE_MS = 4 * 60 * 60 * 1000; // 4 hours
+    const stale = Object.values(alertsMap).filter(a =>
+      a.lastCheckedAt === null || Date.now() - a.lastCheckedAt > STALE_MS
+    );
+    for(const a of stale){
+      try{
+        const n = await checkAlert(a);
+        if(n > 0 && a.notifyEnabled) fireNotification(a, n);
+        if(viewingAlerts) renderAlertsView();
+      }catch(e){}
+    }
+  }
+
+  /* ---- Time helpers ---- */
+  function relTime(ts){
+    if(!ts) return 'Never';
+    const m = Math.floor((Date.now()-ts)/60000);
+    if(m < 1) return 'Just now';
+    if(m < 60) return `${m}m ago`;
+    const h = Math.floor(m/60);
+    if(h < 24) return `${h}h ago`;
+    return `${Math.floor(h/24)}d ago`;
+  }
+  function fmtDate(ts){
+    if(!ts) return '—';
+    return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+  }
+
+  /* ---- Render one alert card ---- */
+  function alertCardHtml(a){
+    const hasNew = a.newCount > 0;
+    const hasResults = (a.lastResults||[]).length > 0;
+    const levelLabel = {all:'All levels',federal:'Federal',state:'State/DOT',municipal:'Municipal/County'}[a.level] || a.level;
+    const metaParts = [a.location, a.level !== 'all' ? levelLabel : ''].filter(Boolean);
+
+    const newSection = hasNew ? `
+      <div class="alert-new-results">
+        <p class="alert-new-results-label">↑ ${a.newCount} new since last check</p>
+        <div class="alert-results-list">${a.newResults.map(cardHtml).join('')}</div>
+      </div>` : '';
+
+    const baselineCount = (a.lastResults||[]).length;
+    const baselineSection = hasResults ? `
+      <details class="alert-baseline-results">
+        <summary>${hasNew ? `All ${baselineCount} result${baselineCount===1?'':'s'} from last check` : `${baselineCount} result${baselineCount===1?'':'s'} from last check`}</summary>
+        <div class="alert-results-list" style="margin-top:10px">${a.lastResults.map(cardHtml).join('')}</div>
+      </details>` : (a.lastCheckedAt ? '<p style="font-size:13px;color:var(--muted);margin:10px 0 0">No results found in last check.</p>' : '');
+
+    const neverChecked = !a.lastCheckedAt;
+
+    return `
+      <div class="alert-card" data-alert-id="${escapeHtml(a.id)}">
+        <div class="alert-card-top">
+          <span class="alert-query">"${escapeHtml(a.query)}"</span>
+          ${hasNew ? `<span class="new-badge">${a.newCount} new</span>` : ''}
+        </div>
+        ${metaParts.length ? `<div class="alert-meta-row">${metaParts.map(p=>`<span>${escapeHtml(p)}</span>`).join('')}</div>` : ''}
+        <div class="alert-dates">
+          Created ${fmtDate(a.createdAt)} ·
+          Last checked: ${relTime(a.lastCheckedAt)}
+          ${(!neverChecked && baselineCount > 0 && !hasNew) ? ` · ${baselineCount} result${baselineCount===1?'':'s'}` : ''}
+        </div>
+        <div class="alert-actions">
+          <button class="check-btn" data-alert-id="${escapeHtml(a.id)}">↻ Check now</button>
+          <button class="notify-toggle-btn ${a.notifyEnabled?'on':''}" data-alert-id="${escapeHtml(a.id)}">${a.notifyEnabled ? '🔔 Notifying' : '🔕 Notify me'}</button>
+          <button class="delete-alert-btn" data-alert-id="${escapeHtml(a.id)}">Delete</button>
+        </div>
+        ${newSection}
+        ${baselineSection}
+      </div>`;
+  }
+
+  /* ---- Render alerts view ---- */
+  function renderAlertsView(){
+    const container = document.getElementById('resultsList');
+    const list = Object.values(alertsMap).sort((a,b)=>(b.newCount||0)-(a.newCount||0)||b.createdAt-a.createdAt);
+    if(!list.length){
+      container.innerHTML = `<div class="empty-state"><h3>No saved alerts yet</h3><p>Run a search, then click <strong>☆ Watch</strong> to save it. You can re-check it anytime to see if new bids have appeared.</p></div>`;
+      return;
+    }
+    container.innerHTML = list.map(alertCardHtml).join('');
+
+    container.querySelectorAll('.check-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-alert-id');
+        const a = alertsMap[id]; if(!a) return;
+        btn.disabled = true; btn.textContent = '↻ Checking…';
+        try{ await checkAlert(a); renderAlertsView(); }
+        catch(e){ btn.disabled = false; btn.textContent = '↻ Check now'; }
+      });
+    });
+
+    container.querySelectorAll('.delete-alert-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(confirm('Delete this alert?')) removeAlert(btn.getAttribute('data-alert-id'));
+      });
+    });
+
+    container.querySelectorAll('.notify-toggle-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-alert-id');
+        const a = alertsMap[id]; if(!a) return;
+        if(!a.notifyEnabled){
+          const ok = await requestNotifyPermission();
+          if(!ok){ window.alert('Notifications are blocked in your browser settings. Enable them for this site, then try again.'); return; }
+        }
+        a.notifyEnabled = !a.notifyEnabled;
+        persistAlert(a);
+        renderAlertsView();
+      });
+    });
+
+    // Wire save buttons inside alert result cards
+    container.querySelectorAll('.save-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-id');
+        const allResults = Object.values(alertsMap).flatMap(a=>[...(a.lastResults||[]),...(a.newResults||[])]);
+        const project = allResults.find(p=>slugId((p.sourceUrl||'')+(p.title||''))===id) || savedMap[id];
+        if(project) toggleSave(project);
+      });
+    });
+  }
+
+  /* ---- Alerts toggle ---- */
+  document.getElementById('alertsToggle').addEventListener('click', ()=>{
+    viewingAlerts = !viewingAlerts;
+    document.getElementById('alertsToggle').classList.toggle('active', viewingAlerts);
+    if(viewingAlerts){
+      viewingSaved = false;
+      document.getElementById('savedToggle').classList.remove('active');
+      document.getElementById('planrooms').hidden = true;
+      document.getElementById('watchBtn').hidden = true;
+      document.getElementById('searchNoteWrap').hidden = true;
+      // Mark new results as seen (clear badge)
+      Object.values(alertsMap).forEach(a=>{ if(a.newCount>0){ a.newCount=0; persistAlert(a); } });
+      updateAlertsBadge();
+      setStatus(`${Object.keys(alertsMap).length} saved alert${Object.keys(alertsMap).length===1?'':'s'}`, false);
+      renderAlertsView();
+    } else {
+      document.getElementById('planrooms').hidden = false;
+      document.getElementById('searchNoteWrap').hidden = !document.getElementById('searchNote').textContent;
+      setStatus(lastResults.length ? `${lastResults.length} result${lastResults.length===1?'':'s'} found` : '', false);
+      updateWatchBtn();
+      render(lastResults);
+    }
+  });
+
+  /* ---- Watch button ---- */
+  document.getElementById('watchBtn').addEventListener('click', async ()=>{
+    const {query, location, level} = currentSearchCriteria;
+    if(!query) return;
+    const id = alertId(query, location, level);
+    if(alertsMap[id]){
+      // Already watching — jump to Alerts view
+      if(!viewingAlerts) document.getElementById('alertsToggle').click();
+      return;
+    }
+    const btn = document.getElementById('watchBtn');
+    btn.disabled = true; btn.textContent = '…';
+    await saveCurrentSearchAsAlert();
+    btn.disabled = false;
+    updateWatchBtn();
   });
 
   /* ---- Location autocomplete ---- */
@@ -1099,12 +1492,15 @@ Rules:
 
   restoreFilters();
   loadSaved();
+  loadAlerts();
   makeSimpleAC(document.getElementById('queryInput'), QUERIES);
   makeLocationAC(document.getElementById('locationInput'));
   const _initQuery = document.getElementById('queryInput').value || 'StreetBond 120';
   const _initLoc   = document.getElementById('locationInput').value;
   const _initLvl   = document.getElementById('levelSelect').value;
-  search(_initQuery, _initLoc, _initLvl);
+  // After initial search completes, check any alerts not checked in the last 4 hours.
+  // Each check costs one API call — no service worker or background polling is used here.
+  search(_initQuery, _initLoc, _initLvl).then(()=>checkStaleAlerts());
 </script>
 
 </body>
