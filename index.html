@@ -180,6 +180,32 @@
     transition:background 0.15s ease, border-color 0.15s ease;
   }
   .chip:hover{ background:rgba(255,198,41,0.18); border-color:var(--sign-yellow); }
+  .chip-toggle{
+    background:rgba(255,198,41,0.12);
+    border-color:rgba(255,198,41,0.4);
+    font-size:11.5px;
+    letter-spacing:0.02em;
+  }
+  .chip-toggle:hover{ background:rgba(255,198,41,0.28); border-color:var(--sign-yellow); }
+  .term-panel{
+    margin-top:10px;
+    background:rgba(0,0,0,0.18);
+    border-radius:10px;
+    padding:12px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .term-group{ display:flex; flex-direction:column; gap:6px; }
+  .term-group-label{
+    font-family:'Overpass',sans-serif;
+    font-weight:700;
+    font-size:10px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:rgba(247,245,239,0.45);
+  }
+  .term-chips{ display:flex; flex-wrap:wrap; gap:6px; }
 
   /* ---------- Results section ---------- */
   .results-section{
@@ -357,6 +383,44 @@
   .badge.closed{ background:var(--muted); }
   .badge.reference{ background:var(--asphalt-3); }
   .card.is-reference{ border-left-style:dashed; }
+
+  .term-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-bottom:10px;
+  }
+  .term-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    font-weight:500;
+    padding:2px 7px;
+    border-radius:4px;
+    letter-spacing:0.02em;
+    white-space:nowrap;
+    line-height:1.6;
+  }
+  .term-tag.direct{
+    background:rgba(11,93,59,0.10);
+    color:var(--route-green);
+    border:1px solid rgba(11,93,59,0.22);
+  }
+  .term-tag.loose{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--concrete-2);
+  }
+  .term-tag.more{
+    background:var(--concrete);
+    color:var(--muted);
+    border:1px solid var(--concrete-2);
+    cursor:pointer;
+    font-family:'Overpass',sans-serif;
+    font-weight:700;
+    font-size:10px;
+    letter-spacing:0.03em;
+  }
+  .term-tag.more:hover{ border-color:var(--route-green); color:var(--route-green); }
 
   .agency{
     font-size:13px;
@@ -639,13 +703,65 @@
       </select>
       <button type="submit" class="go-btn" id="goBtn">GO</button>
     </form>
-    <div class="chip-row" id="chipRow">
-      <span class="chip-label">Try:</span>
-      <button type="button" class="chip" data-q="StreetBond">StreetBond</button>
-      <button type="button" class="chip" data-q="StreetBond DA">StreetBond DA</button>
-      <button type="button" class="chip" data-q="Transpo Industries StreetBond">Transpo Industries StreetBond</button>
-      <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
-      <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
+    <div id="termBrowser">
+      <div class="chip-row" id="chipRow">
+        <span class="chip-label">Try:</span>
+        <button type="button" class="chip" data-q="StreetBond 120">StreetBond 120</button>
+        <button type="button" class="chip" data-q="StreetBond">StreetBond</button>
+        <button type="button" class="chip" data-q="StreetBond DA">StreetBond DA</button>
+        <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
+        <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
+        <button type="button" class="chip chip-toggle" id="termPanelToggle">Browse 22 terms ▾</button>
+      </div>
+      <div class="term-panel" id="termPanel" hidden>
+        <div class="term-group">
+          <span class="term-group-label">StreetBond Products</span>
+          <div class="term-chips">
+            <button type="button" class="chip" data-q="StreetBond 120">StreetBond 120</button>
+            <button type="button" class="chip" data-q="StreetBond 150">StreetBond 150</button>
+            <button type="button" class="chip" data-q="StreetBond">StreetBond</button>
+            <button type="button" class="chip" data-q="StreetBond DA">StreetBond DA</button>
+            <button type="button" class="chip" data-q="Transpo Industries StreetBond">Transpo Industries StreetBond</button>
+          </div>
+        </div>
+        <div class="term-group">
+          <span class="term-group-label">Cool &amp; Reflective Coatings</span>
+          <div class="term-chips">
+            <button type="button" class="chip" data-q="Cool coating">Cool coating</button>
+            <button type="button" class="chip" data-q="Solar reflective coating">Solar reflective coating</button>
+            <button type="button" class="chip" data-q="Cool pavement">Cool pavement</button>
+          </div>
+        </div>
+        <div class="term-group">
+          <span class="term-group-label">Thermoplastic</span>
+          <div class="term-chips">
+            <button type="button" class="chip" data-q="Decorative thermoplastic">Decorative thermoplastic</button>
+            <button type="button" class="chip" data-q="Thermoplastic XD">Thermoplastic XD</button>
+            <button type="button" class="chip" data-q="Intersection thermoplastic">Intersection thermoplastic</button>
+          </div>
+        </div>
+        <div class="term-group">
+          <span class="term-group-label">Decorative Asphalt</span>
+          <div class="term-chips">
+            <button type="button" class="chip" data-q="Decorative asphalt">Decorative asphalt</button>
+            <button type="button" class="chip" data-q="Stamped asphalt">Stamped asphalt</button>
+            <button type="button" class="chip" data-q="Decorative crosswalks">Decorative crosswalks</button>
+            <button type="button" class="chip" data-q="Decocoat asphalt coating">Decocoat asphalt coating</button>
+          </div>
+        </div>
+        <div class="term-group">
+          <span class="term-group-label">Surface Coatings</span>
+          <div class="term-chips">
+            <button type="button" class="chip" data-q="Epoxy modified acrylic">Epoxy modified acrylic</button>
+            <button type="button" class="chip" data-q="Epoxy fortified acrylic">Epoxy fortified acrylic</button>
+            <button type="button" class="chip" data-q="Acrylic asphalt coating">Acrylic asphalt coating</button>
+            <button type="button" class="chip" data-q="Acrylic playground coating">Acrylic playground coating</button>
+            <button type="button" class="chip" data-q="Plexipave tennis court coating">Plexipave tennis court coating</button>
+            <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
+            <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <p class="disclaimer">Results are pulled live via web search and summarized — always confirm scope, dates, and value on the official solicitation before bidding.</p>
@@ -789,6 +905,23 @@ Rules:
     else render(viewingSaved ? Object.values(savedMap) : lastResults);
   }
 
+  function renderTermTags(terms){
+    if(!terms || !terms.length) return '';
+    const MAX = 3;
+    const vis = terms.slice(0, MAX);
+    const hid = terms.slice(MAX);
+    let html = vis.map(t =>
+      `<span class="term-tag ${escapeHtml(t.confidence||'direct')}">${escapeHtml(t.term)}</span>`
+    ).join('');
+    if(hid.length){
+      html += hid.map(t =>
+        `<span class="term-tag ${escapeHtml(t.confidence||'direct')} tt-hidden" hidden>${escapeHtml(t.term)}</span>`
+      ).join('');
+      html += `<button type="button" class="term-tag more">+${hid.length} more</button>`;
+    }
+    return `<div class="term-tags">${html}</div>`;
+  }
+
   function cardHtml(project){
     const id = slugId((project.sourceUrl || '') + (project.title || ''));
     const isReference = project.type === 'reference_project';
@@ -809,6 +942,7 @@ Rules:
           return items ? `<div class="meta-row">${items}</div>` : '';
         })()}
         <p class="snippet">${escapeHtml(project.snippet || '')}</p>
+        ${renderTermTags(project.matchedTerms)}
         <div class="card-actions">
           ${project.sourceUrl ? `<a class="view-link" href="${escapeHtml(project.sourceUrl)}" target="_blank" rel="noopener noreferrer">${isReference ? 'View source ↗' : 'View solicitation ↗'}</a>` : ''}
           <button class="save-btn ${isSaved ? 'saved' : ''}" data-id="${id}">${isSaved ? '★ Saved' : '☆ Save'}</button>
@@ -830,6 +964,12 @@ Rules:
         const id = btn.getAttribute('data-id');
         const project = (viewingSaved ? Object.values(savedMap) : lastResults).find(p => slugId((p.sourceUrl||'')+(p.title||'')) === id) || savedMap[id];
         if(project) toggleSave(project);
+      });
+    });
+    container.querySelectorAll('.term-tag.more').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        btn.parentElement.querySelectorAll('.tt-hidden').forEach(t=>{ t.hidden = false; });
+        btn.hidden = true;
       });
     });
   }
@@ -983,7 +1123,7 @@ Rules:
         }
       }
 
-      lastResults = parsed.results || [];
+      lastResults = (parsed.results || []).map(r=>({...r, matchedTerms:[{term:query, confidence:'direct'}]}));
       const combinedNote = notes.join('  ·  ');
 
       if(lastResults.length === 0){
@@ -1040,12 +1180,20 @@ Rules:
     search(q, document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
   });
 
-  document.getElementById('chipRow').addEventListener('click', (e)=>{
-    const btn = e.target.closest('.chip');
+  document.getElementById('termBrowser').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.chip[data-q]');
     if(!btn) return;
     document.getElementById('queryInput').value = btn.getAttribute('data-q');
     saveFilters();
     search(btn.getAttribute('data-q'), document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
+  });
+
+  document.getElementById('termPanelToggle').addEventListener('click', ()=>{
+    const panel = document.getElementById('termPanel');
+    const toggle = document.getElementById('termPanelToggle');
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.textContent = opening ? 'Collapse ▴' : 'Browse 22 terms ▾';
   });
 
   document.getElementById('savedToggle').addEventListener('click', ()=>{
@@ -1482,25 +1630,28 @@ Rules:
 
   /* ---- Query autocomplete ---- */
   const QUERIES = [
-    'StreetBond 120',
-    'StreetBond',
-    'StreetBond DA',
-    'Transpo Industries StreetBond',
-    'colored crosswalk coating',
-    'colored pavement coating tender',
-    'decorative pavement coating bid',
-    '"epoxy fortified acrylic" tender',
-    '"epoxy fortified acrylic" contract',
-    '"epoxy fortified acrylic" procurement',
-    '"epoxy fortified acrylic" bid',
-    '"epoxy modified acrylic" tender',
-    '"epoxy modified acrylic" contract',
+    // StreetBond
+    'StreetBond 120', 'StreetBond 150', 'StreetBond', 'StreetBond DA', 'Transpo Industries StreetBond',
+    // Cool & reflective
+    'Cool coating', 'Solar reflective coating', 'Cool pavement',
+    // Thermoplastic
+    'Decorative thermoplastic', 'Thermoplastic XD', 'Intersection thermoplastic',
+    // Decorative asphalt
+    'Decorative asphalt', 'Stamped asphalt', 'Decorative crosswalks', 'Decocoat asphalt coating',
+    // Surface coatings
+    'Epoxy modified acrylic', 'Epoxy fortified acrylic',
+    'Acrylic asphalt coating', 'Acrylic playground coating',
+    'Plexipave tennis court coating',
+    'decorative pavement coating', 'colored crosswalk coating',
+    // Advanced procurement search syntax
+    'colored pavement coating tender', 'decorative pavement coating bid',
+    '"epoxy fortified acrylic" tender', '"epoxy fortified acrylic" contract',
+    '"epoxy fortified acrylic" procurement', '"epoxy fortified acrylic" bid',
+    '"epoxy modified acrylic" tender', '"epoxy modified acrylic" contract',
     '"epoxy modified acrylic pavement coating"',
     '"waterborne epoxy modified acrylic" tender',
-    '"bike lane coating" epoxy acrylic',
-    '"traffic coating" epoxy acrylic',
-    '"crosswalk coating" procurement',
-    '"playground coating" epoxy acrylic',
+    '"bike lane coating" epoxy acrylic', '"traffic coating" epoxy acrylic',
+    '"crosswalk coating" procurement', '"playground coating" epoxy acrylic',
   ];
 
   function makeSimpleAC(inputEl, items){
