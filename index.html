@@ -187,23 +187,77 @@
     margin:0 auto;
     padding:28px 24px 80px;
   }
+  .status-bar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:6px;
+  }
   .status-line{
     font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     color:var(--muted);
-    margin-bottom:6px;
     min-height:18px;
     display:flex;
     align-items:center;
     gap:10px;
+    flex:1;
   }
+  .cancel-btn{
+    background:none;
+    border:1.5px solid var(--muted);
+    color:var(--muted);
+    font-family:'Overpass',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.05em;
+    padding:4px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color 0.15s,color 0.15s;
+  }
+  .cancel-btn:hover{ border-color:var(--deadline-red); color:var(--deadline-red); }
+  .elapsed{ font-size:11px; opacity:0.7; margin-left:2px; }
+  .search-note-wrap{ margin-bottom:16px; }
+  .search-note-wrap summary{
+    list-style:none;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    user-select:none;
+  }
+  .search-note-wrap summary::-webkit-details-marker{ display:none; }
+  .search-note-wrap summary::before{ content:'▸'; font-size:10px; }
+  .search-note-wrap[open] summary::before{ content:'▾'; }
   .search-note{
     font-size:12.5px;
     color:var(--muted);
     font-style:italic;
-    margin-bottom:18px;
+    margin:6px 0 0;
     line-height:1.5;
+    padding-left:14px;
   }
+  .err-msg{
+    position:absolute;
+    top:calc(100% + 3px);
+    left:0;
+    font-size:11px;
+    color:var(--deadline-red);
+    font-family:'Inter',sans-serif;
+    background:var(--line-white);
+    padding:2px 8px;
+    border-radius:4px;
+    white-space:nowrap;
+    z-index:10;
+    pointer-events:none;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  }
+  .input-error > input{ outline:2px solid var(--deadline-red) !important; }
   .scan{
     width:16px; height:16px;
     border-radius:50%;
@@ -375,11 +429,31 @@
   }
 
   @media (max-width:480px){
+    .topbar{ padding:12px 16px; }
+    .brand{ font-size:15px; gap:7px; }
+    .brand svg{ width:20px; height:20px; }
+    .saved-toggle{ font-size:12px; padding:6px 10px; }
     .search-row{ flex-direction:column; }
     #queryWrap, #levelSelect, .go-btn{ flex:1 1 auto; width:100%; }
     #queryInput, #locationInput{ width:100%; }
     .go-btn{ clip-path:none; padding-left:26px; }
   }
+  @media (max-width:390px){
+    .topbar{ padding:10px 12px; }
+    .brand{ font-size:13px; }
+    .brand svg{ width:18px; height:18px; }
+    .saved-toggle{ font-size:11px; padding:5px 8px; }
+    .sign{ padding:20px 16px 18px; }
+    .sign h1{ font-size:clamp(18px,5vw,24px) !important; margin-bottom:14px; }
+    .hero{ padding:24px 16px 48px; }
+    .chip-row{ gap:6px; }
+  }
+
+  details.planrooms > summary.planrooms-label{ cursor:pointer; user-select:none; margin-bottom:0; }
+  details.planrooms > summary.planrooms-label::-webkit-details-marker{ display:none; }
+  details.planrooms > summary.planrooms-label::before{ content:'▸ '; font-size:10px; }
+  details.planrooms[open] > summary.planrooms-label::before{ content:'▾ '; }
+  details.planrooms > .planroom-links{ margin-top:10px; }
 
   /* ---------- Location autocomplete ---------- */
   .ac-wrap{ position:relative; flex:1 1 160px; }
@@ -459,13 +533,19 @@
 </div>
 
 <div class="results-section">
-  <div class="status-line" id="statusLine"></div>
-  <div class="search-note" id="searchNote"></div>
-
-  <div class="planrooms" id="planrooms">
-    <p class="planrooms-label">Check these plan rooms directly</p>
-    <div class="planroom-links" id="planroomLinks"></div>
+  <div class="status-bar">
+    <div class="status-line" id="statusLine"></div>
+    <button class="cancel-btn" id="cancelBtn" hidden>✕ Cancel</button>
   </div>
+  <details class="search-note-wrap" id="searchNoteWrap" hidden>
+    <summary>Search details</summary>
+    <p class="search-note" id="searchNote"></p>
+  </details>
+
+  <details class="planrooms" id="planrooms">
+    <summary class="planrooms-label">Check these plan rooms directly</summary>
+    <div class="planroom-links" id="planroomLinks"></div>
+  </details>
 
   <div class="results-list" id="resultsList"></div>
 </div>
@@ -599,11 +679,11 @@ Rules:
           <span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(label)}</span>
         </div>
         <h3>${escapeHtml(project.title || 'Untitled solicitation')}</h3>
-        <div class="meta-row">
-          <span><b>Location</b>${escapeHtml(project.location || '—')}</span>
-          <span><b>${isReference ? 'Completed' : 'Deadline'}</b>${escapeHtml(project.deadline || '—')}</span>
-          <span><b>Est. value</b>${escapeHtml(project.estimatedValue || '—')}</span>
-        </div>
+        ${(()=>{
+          function mi(label, val){ const v = val && val.trim() && val.trim() !== '—' ? val.trim() : ''; return v ? `<span><b>${escapeHtml(label)}</b>${escapeHtml(v)}</span>` : ''; }
+          const items = [mi('Location', project.location), mi(isReference ? 'Completed' : 'Deadline', project.deadline), mi('Est. value', project.estimatedValue)].filter(Boolean).join('');
+          return items ? `<div class="meta-row">${items}</div>` : '';
+        })()}
         <p class="snippet">${escapeHtml(project.snippet || '')}</p>
         <div class="card-actions">
           ${project.sourceUrl ? `<a class="view-link" href="${escapeHtml(project.sourceUrl)}" target="_blank" rel="noopener noreferrer">${isReference ? 'View source ↗' : 'View solicitation ↗'}</a>` : ''}
@@ -634,7 +714,7 @@ Rules:
     document.getElementById('statusLine').innerHTML = (spinning ? '<span class="scan"></span>' : '') + html;
   }
 
-  async function searchOnce(query, location, level){
+  async function searchOnce(query, location, level, signal){
     const response = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -644,7 +724,8 @@ Rules:
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserPrompt(query, location, level) }],
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }]
-      })
+      }),
+      signal
     });
     if(!response.ok){ throw new Error(`Search request failed (${response.status})`); }
     const data = await response.json();
@@ -667,17 +748,35 @@ Rules:
       </a>`).join('');
   }
 
+  let searchAbortController = null;
+
   async function search(query, location, level){
+    if(searchAbortController) searchAbortController.abort();
+    searchAbortController = new AbortController();
+    const { signal } = searchAbortController;
+    const TIMEOUT_MS = 20000;
+    const timeoutId = setTimeout(()=>{ if(searchAbortController) searchAbortController.abort(); }, TIMEOUT_MS);
+    const startTime = Date.now();
+
     viewingSaved = false;
     document.getElementById('savedToggle').classList.remove('active');
     document.getElementById('goBtn').disabled = true;
-    setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
-    document.getElementById('searchNote').textContent = '';
+    document.getElementById('cancelBtn').hidden = false;
+    document.getElementById('planrooms').hidden = false;
+    document.getElementById('planrooms').open = false;
+    document.getElementById('searchNoteWrap').hidden = true;
     document.getElementById('resultsList').innerHTML = '';
     renderPlanroomLinks(query);
 
+    setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
+
+    const timerInterval = setInterval(()=>{
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip; <span class="elapsed">${s}s</span>`, true);
+    }, 1000);
+
     try{
-      let parsed = await searchOnce(query, location, level);
+      let parsed = await searchOnce(query, location, level, signal);
       const notes = [];
       if(parsed.note) notes.push(parsed.note);
 
@@ -685,7 +784,7 @@ Rules:
         const fallbackQuery = deriveFallbackQuery(query);
         if(fallbackQuery.toLowerCase() !== query.trim().toLowerCase()){
           setStatus(`No hits for &ldquo;${escapeHtml(query)}&rdquo; — trying &ldquo;${escapeHtml(fallbackQuery)}&rdquo;&hellip;`, true);
-          const parsed2 = await searchOnce(fallbackQuery, location, level);
+          const parsed2 = await searchOnce(fallbackQuery, location, level, signal);
           if(parsed2.note) notes.push(parsed2.note);
           if((parsed2.results || []).length > 0){ parsed = parsed2; }
         }
@@ -696,43 +795,71 @@ Rules:
 
       if(lastResults.length === 0){
         setStatus('No results.', false);
+        document.getElementById('planrooms').open = true;
       } else if(parsed._partial){
         setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} recovered from a cut-off response — try again for a cleaner pass.`, false);
       } else {
         setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} found · ${new Date().toLocaleTimeString()}`, false);
       }
-      document.getElementById('searchNote').textContent = combinedNote;
+
+      if(combinedNote){
+        document.getElementById('searchNote').textContent = combinedNote;
+        document.getElementById('searchNoteWrap').hidden = false;
+      }
       render(lastResults, combinedNote);
     } catch(err){
-      console.error(err);
-      document.getElementById('resultsList').innerHTML = `<div class="error-state"><h3>Search didn't go through</h3><p>${escapeHtml(err.message || 'Something went wrong reaching the search service.')} Try again in a moment.</p></div>`;
-      setStatus('Search failed.', false);
+      if(err.name === 'AbortError'){
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const timedOut = elapsed >= TIMEOUT_MS / 1000 - 1;
+        setStatus(timedOut ? 'Search timed out.' : 'Search cancelled.', false);
+        document.getElementById('resultsList').innerHTML = timedOut
+          ? `<div class="error-state"><h3>Search timed out</h3><p>The search took longer than 20s. Try a simpler or shorter query.</p></div>`
+          : `<div class="error-state"><h3>Search cancelled</h3><p>Search was stopped before completing.</p></div>`;
+        document.getElementById('planrooms').open = true;
+      } else {
+        console.error(err);
+        document.getElementById('resultsList').innerHTML = `<div class="error-state"><h3>Search didn't go through</h3><p>${escapeHtml(err.message || 'Something went wrong reaching the search service.')} Try again in a moment.</p></div>`;
+        setStatus('Search failed.', false);
+      }
     } finally {
+      clearTimeout(timeoutId);
+      clearInterval(timerInterval);
+      document.getElementById('cancelBtn').hidden = true;
       document.getElementById('goBtn').disabled = false;
+      searchAbortController = null;
     }
   }
 
   document.getElementById('searchForm').addEventListener('submit', (e)=>{
     e.preventDefault();
-    search(
-      document.getElementById('queryInput').value.trim() || 'StreetBond 120',
-      document.getElementById('locationInput').value.trim(),
-      document.getElementById('levelSelect').value
-    );
+    const q = document.getElementById('queryInput').value.trim();
+    if(!q){
+      const wrap = document.getElementById('queryWrap');
+      wrap.classList.add('input-error');
+      let msg = document.getElementById('queryErrMsg');
+      if(!msg){ msg = document.createElement('span'); msg.id = 'queryErrMsg'; msg.className = 'err-msg'; msg.textContent = 'Please enter a search term'; wrap.appendChild(msg); }
+      document.getElementById('queryInput').focus();
+      document.getElementById('queryInput').addEventListener('input', ()=>{ wrap.classList.remove('input-error'); msg.remove(); }, {once:true});
+      return;
+    }
+    saveFilters();
+    search(q, document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
   });
 
   document.getElementById('chipRow').addEventListener('click', (e)=>{
     const btn = e.target.closest('.chip');
     if(!btn) return;
     document.getElementById('queryInput').value = btn.getAttribute('data-q');
+    saveFilters();
     search(btn.getAttribute('data-q'), document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
   });
 
   document.getElementById('savedToggle').addEventListener('click', ()=>{
     viewingSaved = !viewingSaved;
     document.getElementById('savedToggle').classList.toggle('active', viewingSaved);
+    document.getElementById('planrooms').hidden = viewingSaved;
+    document.getElementById('searchNoteWrap').hidden = viewingSaved || !document.getElementById('searchNote').textContent;
     if(viewingSaved){
-      document.getElementById('searchNote').textContent = '';
       setStatus(`Showing ${Object.keys(savedMap).length} saved lead${Object.keys(savedMap).length===1?'':'s'}`, false);
       render(Object.values(savedMap));
     } else {
@@ -946,10 +1073,38 @@ Rules:
     });
   }
 
+  function saveFilters(){
+    try{
+      localStorage.setItem('bidroute:filters', JSON.stringify({
+        query:    document.getElementById('queryInput').value.trim(),
+        location: document.getElementById('locationInput').value.trim(),
+        level:    document.getElementById('levelSelect').value
+      }));
+    }catch(e){}
+  }
+
+  function restoreFilters(){
+    try{
+      const f = JSON.parse(localStorage.getItem('bidroute:filters') || 'null');
+      if(!f) return;
+      if(f.query)    document.getElementById('queryInput').value    = f.query;
+      if(f.location) document.getElementById('locationInput').value = f.location;
+      if(f.level)    document.getElementById('levelSelect').value   = f.level;
+    }catch(e){}
+  }
+
+  document.getElementById('cancelBtn').addEventListener('click', ()=>{
+    if(searchAbortController) searchAbortController.abort();
+  });
+
+  restoreFilters();
   loadSaved();
   makeSimpleAC(document.getElementById('queryInput'), QUERIES);
   makeLocationAC(document.getElementById('locationInput'));
-  search('StreetBond 120', '', 'all');
+  const _initQuery = document.getElementById('queryInput').value || 'StreetBond 120';
+  const _initLoc   = document.getElementById('locationInput').value;
+  const _initLvl   = document.getElementById('levelSelect').value;
+  search(_initQuery, _initLoc, _initLvl);
 </script>
 
 </body>
