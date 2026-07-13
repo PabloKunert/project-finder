@@ -1024,13 +1024,21 @@ Rules:
         browseNote: 'Multi-state & local bids · full listings may prompt registration',
         loginUrl: null, loginNote: null,
       },
-      // Cal eProcure: CA-only, shown conditionally; SPA cannot accept keyword via URL
-      ...(isCa ? [{
-        name: 'Cal eProcure (CSCR)', tag: 'browse only', cls: '',
-        browseUrl: 'https://caleprocure.ca.gov/pages/public-search.aspx',
-        browseNote: 'California State Contracts Register · enter keyword manually after landing (SPA — URL pre-fill not supported)',
-        loginUrl: null, loginNote: null,
-      }] : []),
+      // CA-only sources, shown conditionally
+      ...(isCa ? [
+        {
+          name: 'Cal eProcure (CSCR)', tag: 'browse only', cls: '',
+          browseUrl: 'https://caleprocure.ca.gov/pages/public-search.aspx',
+          browseNote: 'California State Contracts Register · enter keyword manually after landing (SPA — URL pre-fill not supported)',
+          loginUrl: null, loginNote: null,
+        },
+        {
+          name: 'Caltrans (dot.ca.gov)', tag: 'CA DOT', cls: '',
+          browseUrl: 'https://dot.ca.gov/programs/procurement/solicitation-notices',
+          browseNote: 'California Dept. of Transportation solicitation notices — pavement, coatings, road projects',
+          loginUrl: null, loginNote: null,
+        },
+      ] : []),
       // ── Gated / account-required sources ─────────────────────────────────
       {
         name: 'Crisp Planroom', tag: 'deep link', cls: 'deep',
