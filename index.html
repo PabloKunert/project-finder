@@ -206,6 +206,47 @@
     color:rgba(247,245,239,0.45);
   }
   .term-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .term-group-header{ display:flex; align-items:center; justify-content:space-between; }
+  .select-all-link{
+    background:transparent; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:10px; font-weight:500;
+    color:rgba(247,245,239,0.35); text-decoration:underline; text-underline-offset:2px;
+    padding:0; line-height:1;
+    transition:color 0.12s;
+  }
+  .select-all-link:hover{ color:rgba(247,245,239,0.7); }
+  .chip.selected{
+    background:var(--sign-yellow); color:var(--asphalt);
+    border-color:var(--sign-yellow); font-weight:600;
+  }
+  .chip.selected::before{ content:'✓ '; font-size:10px; }
+  .chip.selected:hover{ background:#ffd84a; border-color:#ffd84a; }
+  .term-sel-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--sign-yellow); color:var(--asphalt);
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:10px;
+    border-radius:999px; padding:1px 6px; margin-left:4px; line-height:1.4;
+  }
+  .term-action-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 0 2px; margin-top:6px;
+    border-top:1px solid rgba(247,245,239,0.12);
+  }
+  .term-search-btn{
+    background:var(--sign-yellow); color:var(--asphalt);
+    border:none; border-radius:999px; cursor:pointer;
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:12.5px;
+    padding:7px 16px; letter-spacing:0.03em;
+    transition:background 0.15s;
+  }
+  .term-search-btn:hover{ background:#ffd84a; }
+  .term-clear-link{
+    background:transparent; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:500;
+    color:rgba(247,245,239,0.45); text-decoration:underline; text-underline-offset:2px;
+    padding:0; transition:color 0.12s;
+  }
+  .term-clear-link:hover{ color:rgba(247,245,239,0.8); }
 
   /* ---------- Results section ---------- */
   .results-section{
@@ -711,11 +752,14 @@
         <button type="button" class="chip" data-q="StreetBond DA">StreetBond DA</button>
         <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
         <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
-        <button type="button" class="chip chip-toggle" id="termPanelToggle">Browse 22 terms ▾</button>
+        <button type="button" class="chip chip-toggle" id="termPanelToggle"><span id="termPanelLabel">Browse 22 terms ▾</span><span class="term-sel-badge" id="termSelBadge" hidden></span></button>
       </div>
       <div class="term-panel" id="termPanel" hidden>
         <div class="term-group">
-          <span class="term-group-label">StreetBond Products</span>
+          <div class="term-group-header">
+            <span class="term-group-label">StreetBond Products</span>
+            <button type="button" class="select-all-link">select all</button>
+          </div>
           <div class="term-chips">
             <button type="button" class="chip" data-q="StreetBond 120">StreetBond 120</button>
             <button type="button" class="chip" data-q="StreetBond 150">StreetBond 150</button>
@@ -725,7 +769,10 @@
           </div>
         </div>
         <div class="term-group">
-          <span class="term-group-label">Cool &amp; Reflective Coatings</span>
+          <div class="term-group-header">
+            <span class="term-group-label">Cool &amp; Reflective Coatings</span>
+            <button type="button" class="select-all-link">select all</button>
+          </div>
           <div class="term-chips">
             <button type="button" class="chip" data-q="Cool coating">Cool coating</button>
             <button type="button" class="chip" data-q="Solar reflective coating">Solar reflective coating</button>
@@ -733,7 +780,10 @@
           </div>
         </div>
         <div class="term-group">
-          <span class="term-group-label">Thermoplastic</span>
+          <div class="term-group-header">
+            <span class="term-group-label">Thermoplastic</span>
+            <button type="button" class="select-all-link">select all</button>
+          </div>
           <div class="term-chips">
             <button type="button" class="chip" data-q="Decorative thermoplastic">Decorative thermoplastic</button>
             <button type="button" class="chip" data-q="Thermoplastic XD">Thermoplastic XD</button>
@@ -741,7 +791,10 @@
           </div>
         </div>
         <div class="term-group">
-          <span class="term-group-label">Decorative Asphalt</span>
+          <div class="term-group-header">
+            <span class="term-group-label">Decorative Asphalt</span>
+            <button type="button" class="select-all-link">select all</button>
+          </div>
           <div class="term-chips">
             <button type="button" class="chip" data-q="Decorative asphalt">Decorative asphalt</button>
             <button type="button" class="chip" data-q="Stamped asphalt">Stamped asphalt</button>
@@ -750,7 +803,10 @@
           </div>
         </div>
         <div class="term-group">
-          <span class="term-group-label">Surface Coatings</span>
+          <div class="term-group-header">
+            <span class="term-group-label">Surface Coatings</span>
+            <button type="button" class="select-all-link">select all</button>
+          </div>
           <div class="term-chips">
             <button type="button" class="chip" data-q="Epoxy modified acrylic">Epoxy modified acrylic</button>
             <button type="button" class="chip" data-q="Epoxy fortified acrylic">Epoxy fortified acrylic</button>
@@ -760,6 +816,10 @@
             <button type="button" class="chip" data-q="decorative pavement coating">decorative pavement coating</button>
             <button type="button" class="chip" data-q="colored crosswalk coating">colored crosswalk coating</button>
           </div>
+        </div>
+        <div class="term-action-bar" id="termActionBar" hidden>
+          <button type="button" class="term-search-btn" id="termSearchBtn">Search 0 terms</button>
+          <button type="button" class="term-clear-link" id="termClearBtn">Clear selection</button>
         </div>
       </div>
     </div>
@@ -1188,9 +1248,71 @@ Rules:
     search(q, document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
   });
 
+  // ── Multi-select term state ───────────────────────────────────────────────
+  const selectedTerms = new Set();
+
+  function syncTermToggleLabel(){
+    const panel = document.getElementById('termPanel');
+    const label = document.getElementById('termPanelLabel');
+    const badge = document.getElementById('termSelBadge');
+    const n = selectedTerms.size;
+    if(panel.hidden){
+      label.textContent = 'Browse 22 terms ▾';
+      badge.textContent = n ? `${n} ✓` : '';
+      badge.hidden = n === 0;
+    } else {
+      label.textContent = 'Collapse ▴';
+      badge.hidden = true;
+    }
+  }
+
+  function syncTermActionBar(){
+    const n = selectedTerms.size;
+    const bar = document.getElementById('termActionBar');
+    const btn = document.getElementById('termSearchBtn');
+    bar.hidden = n === 0;
+    btn.textContent = n > 0 ? `Search ${n} term${n > 1 ? 's' : ''}` : '';
+    syncTermToggleLabel();
+  }
+
+  function syncGroupSelectAll(group){
+    const chips = group.querySelectorAll('.chip[data-q]');
+    const allSel = [...chips].every(c => selectedTerms.has(c.getAttribute('data-q')));
+    const link = group.querySelector('.select-all-link');
+    if(link) link.textContent = allSel ? 'deselect all' : 'select all';
+  }
+
   document.getElementById('termBrowser').addEventListener('click', (e)=>{
+    // "select all / deselect all" link inside term panel
+    const selAllBtn = e.target.closest('.select-all-link');
+    if(selAllBtn){
+      const group = selAllBtn.closest('.term-group');
+      const chips = group.querySelectorAll('.chip[data-q]');
+      const allSel = [...chips].every(c => selectedTerms.has(c.getAttribute('data-q')));
+      chips.forEach(c => {
+        const q = c.getAttribute('data-q');
+        if(allSel){ selectedTerms.delete(q); c.classList.remove('selected'); }
+        else { selectedTerms.add(q); c.classList.add('selected'); }
+      });
+      syncGroupSelectAll(group);
+      syncTermActionBar();
+      return;
+    }
+
     const btn = e.target.closest('.chip[data-q]');
     if(!btn) return;
+
+    // Chips inside the panel → toggle selection (no immediate search)
+    if(btn.closest('#termPanel')){
+      const q = btn.getAttribute('data-q');
+      if(selectedTerms.has(q)){ selectedTerms.delete(q); btn.classList.remove('selected'); }
+      else { selectedTerms.add(q); btn.classList.add('selected'); }
+      syncGroupSelectAll(btn.closest('.term-group'));
+      syncTermActionBar();
+      return;
+    }
+
+    // Quick-pick chips in chip-row → instant single search (original behavior)
     document.getElementById('queryInput').value = btn.getAttribute('data-q');
     saveFilters();
     search(btn.getAttribute('data-q'), document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
@@ -1198,10 +1320,19 @@ Rules:
 
   document.getElementById('termPanelToggle').addEventListener('click', ()=>{
     const panel = document.getElementById('termPanel');
-    const toggle = document.getElementById('termPanelToggle');
-    const opening = panel.hidden;
-    panel.hidden = !opening;
-    toggle.textContent = opening ? 'Collapse ▴' : 'Browse 22 terms ▾';
+    panel.hidden = !panel.hidden;
+    syncTermToggleLabel();
+  });
+
+  document.getElementById('termClearBtn').addEventListener('click', ()=>{
+    selectedTerms.clear();
+    document.querySelectorAll('#termPanel .chip.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('#termPanel .select-all-link').forEach(b => b.textContent = 'select all');
+    syncTermActionBar();
+  });
+
+  document.getElementById('termSearchBtn').addEventListener('click', ()=>{
+    // Phase 2: sequential batch search — wired up in the next phase
   });
 
   document.getElementById('savedToggle').addEventListener('click', ()=>{
