@@ -1712,7 +1712,7 @@ Rules:
     if(searchAbortController) searchAbortController.abort();
     searchAbortController = new AbortController();
     const { signal } = searchAbortController;
-    const TIMEOUT_MS = 20000;
+    const TIMEOUT_MS = 60000;
     const timeoutId = setTimeout(()=>{ if(searchAbortController) searchAbortController.abort(); }, TIMEOUT_MS);
     const startTime = Date.now();
 
@@ -1955,7 +1955,7 @@ Rules:
   // ── Per-term batch worker ────────────────────────────────────────────────
   async function runBatchTerm(term, idx, location, level, batchSignal){
     if(batchSignal.aborted) return;
-    const TERM_TIMEOUT = 25000;
+    const TERM_TIMEOUT = 60000;
     const termAC = new AbortController();
     const ttId = setTimeout(() => termAC.abort(), TERM_TIMEOUT);
     batchSignal.addEventListener('abort', () => termAC.abort(), {once:true});
@@ -2215,7 +2215,7 @@ Rules:
   /* ---- Check logic ---- */
   async function checkAlert(a){
     const ac = new AbortController();
-    const tid = setTimeout(()=>ac.abort(), 25000);
+    const tid = setTimeout(()=>ac.abort(), 60000);
     try{
       const parsed = await searchOnce(a.query, a.location, a.level, ac.signal);
       const results = parsed.results || [];
