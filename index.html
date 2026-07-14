@@ -1656,19 +1656,23 @@ Rules:
   // ── Multi-select term state ───────────────────────────────────────────────
   const selectedTerms = new Set();
 
-  function syncTermToggleLabel(){
+  function setTermPanel(open){
     const panel = document.getElementById('termPanel');
-    const label = document.getElementById('termPanelLabel');
+    const trigger = document.getElementById('termPanelToggle');
     const badge = document.getElementById('termSelBadge');
     const n = selectedTerms.size;
-    if(panel.hidden){
-      label.textContent = 'Browse terms';
+    panel.hidden = !open;
+    trigger.setAttribute('aria-expanded', String(open));
+    if(!open){
       badge.textContent = n ? `${n}` : '';
       badge.hidden = n === 0;
     } else {
-      label.textContent = 'Browse terms';
       badge.hidden = true;
     }
+  }
+  function syncTermToggleLabel(){
+    const panel = document.getElementById('termPanel');
+    setTermPanel(!panel.hidden);
   }
 
   function syncTermActionBar(){
@@ -1688,10 +1692,11 @@ Rules:
   }
 
   document.getElementById('termBrowser').addEventListener('click', (e)=>{
-    // "select all / deselect all" link inside term panel
+    // "select all / deselect all" link inside a term-group (NOT the global selectAllTermsBtn)
     const selAllBtn = e.target.closest('.select-all-link');
     if(selAllBtn){
       const group = selAllBtn.closest('.term-group');
+      if(!group) return; // global select-all has its own handler; skip here
       const chips = group.querySelectorAll('.chip[data-q]');
       const allSel = [...chips].every(c => selectedTerms.has(c.getAttribute('data-q')));
       chips.forEach(c => {
@@ -1725,30 +1730,21 @@ Rules:
 
   document.getElementById('termPanelToggle').addEventListener('click', ()=>{
     const panel = document.getElementById('termPanel');
-    panel.hidden = !panel.hidden;
-    document.getElementById('termPanelToggle').setAttribute('aria-expanded', !panel.hidden);
-    syncTermToggleLabel();
+    setTermPanel(panel.hidden); // hidden=true means currently closed → open it
   });
 
   document.addEventListener('click', (e)=>{
-    const wrap = document.getElementById('termBrowser');
     const panel = document.getElementById('termPanel');
-    if(!panel.hidden && !wrap.contains(e.target)){
-      panel.hidden = true;
-      document.getElementById('termPanelToggle').setAttribute('aria-expanded', 'false');
-      syncTermToggleLabel();
+    if(panel.hidden) return;
+    if(!document.getElementById('termBrowser').contains(e.target)){
+      setTermPanel(false);
     }
   });
 
   document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape'){
-      const panel = document.getElementById('termPanel');
-      if(!panel.hidden){
-        panel.hidden = true;
-        document.getElementById('termPanelToggle').setAttribute('aria-expanded', 'false');
-        syncTermToggleLabel();
-        document.getElementById('termPanelToggle').focus();
-      }
+    if(e.key === 'Escape' && !document.getElementById('termPanel').hidden){
+      setTermPanel(false);
+      document.getElementById('termPanelToggle').focus();
     }
   });
 
@@ -1979,8 +1975,7 @@ Rules:
     const location = document.getElementById('locationSelect').value;
     const level = document.getElementById('levelSelect').value;
     // Collapse panel and clear selection after launching
-    document.getElementById('termPanel').hidden = true;
-    document.getElementById('termPanelToggle').setAttribute('aria-expanded', 'false');
+    setTermPanel(false);
     selectedTerms.clear();
     document.querySelectorAll('#termPanel .chip.selected').forEach(c => c.classList.remove('selected'));
     document.querySelectorAll('#termPanel .select-all-link').forEach(b => b.textContent = 'select all');
