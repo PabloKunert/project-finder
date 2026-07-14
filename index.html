@@ -248,6 +248,37 @@
   }
   .term-clear-link:hover{ color:rgba(247,245,239,0.8); }
 
+  /* ---------- Batch results ---------- */
+  .batch-section{ margin-bottom:4px; }
+  .batch-section + .batch-section{ border-top:1px solid var(--concrete-2); padding-top:20px; margin-top:20px; }
+  .batch-section-header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:12px; gap:10px;
+  }
+  .batch-term-name{
+    font-family:'Overpass',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--muted);
+    flex-shrink:0;
+  }
+  .batch-count{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted);
+    text-align:right;
+  }
+  .batch-fail-msg{
+    font-family:'Inter',sans-serif; font-size:12px; color:var(--deadline-red);
+    display:flex; align-items:center; gap:6px;
+  }
+  .retry-btn{
+    background:transparent; border:1px solid var(--deadline-red); color:var(--deadline-red);
+    border-radius:999px; cursor:pointer; font-family:'Inter',sans-serif;
+    font-size:11px; padding:2px 9px; transition:background 0.12s;
+  }
+  .retry-btn:hover{ background:rgba(179,38,30,0.08); }
+  .batch-no-results{
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--muted);
+    font-style:italic; margin:0 0 4px;
+  }
+
   /* ---------- Results section ---------- */
   .results-section{
     max-width:880px;
@@ -936,6 +967,11 @@ Rules:
   let alertsMap = {};
   let viewingAlerts = false;
   let currentSearchCriteria = {query:'', location:'', level:'all'};
+  let isBatchMode = false;
+  let batchAbortController = null;
+  let batchResultsAll = [];
+  let batchTermSections = [];
+  let batchSeen = new Set();
 
   function loadSaved(){
     for(let i = 0; i < localStorage.length; i++){
@@ -962,6 +998,7 @@ Rules:
     }
     updateSavedCount();
     if(viewingAlerts) renderAlertsView();
+    else if(isBatchMode && !viewingSaved) renderBatch(batchTermSections);
     else render(viewingSaved ? Object.values(savedMap) : lastResults);
   }
 
@@ -1148,6 +1185,7 @@ Rules:
   let searchAbortController = null;
 
   async function search(query, location, level){
+    isBatchMode = false;
     currentSearchCriteria = {query, location, level};
     if(searchAbortController) searchAbortController.abort();
     searchAbortController = new AbortController();
@@ -1331,8 +1369,215 @@ Rules:
     syncTermActionBar();
   });
 
+  // ── Concurrency helper ───────────────────────────────────────────────────
+  function runConcurrent(items, concurrency, fn) {
+    return new Promise(resolve => {
+      const n = items.length;
+      if(n === 0){ resolve([]); return; }
+      const results = new Array(n);
+      let nextIdx = 0, doneCount = 0;
+      function launchNext(){
+        if(nextIdx >= n) return;
+        const i = nextIdx++;
+        Promise.resolve()
+          .then(() => fn(items[i], i))
+          .then(r => { results[i] = r; })
+          .catch(() => { results[i] = null; })
+          .finally(() => {
+            doneCount++;
+            if(doneCount === n) resolve(results);
+            else launchNext();
+          });
+      }
+      for(let k = 0; k < Math.min(concurrency, n); k++) launchNext();
+    });
+  }
+
+  // ── Per-term batch worker ────────────────────────────────────────────────
+  async function runBatchTerm(term, idx, location, level, batchSignal){
+    if(batchSignal.aborted) return;
+    const TERM_TIMEOUT = 25000;
+    const termAC = new AbortController();
+    const ttId = setTimeout(() => termAC.abort(), TERM_TIMEOUT);
+    batchSignal.addEventListener('abort', () => termAC.abort(), {once:true});
+    const sec = batchTermSections[idx];
+    try{
+      const parsed = await searchOnce(term, location, level, termAC.signal);
+      clearTimeout(ttId);
+      const newResults = [];
+      let duped = 0;
+      for(const r of (parsed.results || [])){
+        const fp = slugId((r.sourceUrl||'') + (r.title||''));
+        if(batchSeen.has(fp)){
+          const existing = batchResultsAll.find(p => slugId((p.sourceUrl||'')+(p.title||'')) === fp);
+          if(existing){
+            if(!existing.matchedTerms) existing.matchedTerms = [];
+            existing.matchedTerms.push({term, confidence:'loose'});
+          }
+          duped++;
+        } else {
+          batchSeen.add(fp);
+          const enriched = {...r, matchedTerms:[{term, confidence:'direct'}]};
+          newResults.push(enriched);
+          batchResultsAll.push(enriched);
+        }
+      }
+      sec.results = newResults;
+      sec.duped = duped;
+      sec.failed = false;
+    } catch(err){
+      clearTimeout(ttId);
+      sec.failed = true;
+      sec.failMsg = batchSignal.aborted ? 'Cancelled.' : (err.message || 'Unknown error');
+    }
+    sec.done = true;
+  }
+
+  // ── Batch render ─────────────────────────────────────────────────────────
+  function renderBatch(sections){
+    const container = document.getElementById('resultsList');
+    const hasAny = sections.some(s => s.results && s.results.length > 0);
+    if(!hasAny && sections.every(s => !s.failed)){
+      container.innerHTML = `<div class="empty-state"><h3>No results found</h3><p>None of the selected terms returned matches. Try different terms or a broader location.</p></div>`;
+      return;
+    }
+    let html = '';
+    for(const sec of sections){
+      html += `<div class="batch-section" data-term="${escapeHtml(sec.term)}">`;
+      html += `<div class="batch-section-header">`;
+      html += `<span class="batch-term-name">${escapeHtml(sec.term)}</span>`;
+      if(sec.failed){
+        html += `<span class="batch-fail-msg">search failed · <button type="button" class="retry-btn" data-q="${escapeHtml(sec.term)}">retry</button></span>`;
+      } else {
+        const n = sec.results ? sec.results.length : 0;
+        let countStr = n === 0 ? 'no results' : `${n} result${n !== 1 ? 's' : ''}`;
+        if(sec.duped > 0) countStr += ` · ${sec.duped} duplicate${sec.duped !== 1 ? 's' : ''} merged`;
+        html += `<span class="batch-count">${countStr}</span>`;
+      }
+      html += `</div>`;
+      if(!sec.failed && sec.results && sec.results.length > 0){
+        html += sec.results.map(cardHtml).join('');
+      } else if(!sec.failed){
+        html += `<p class="batch-no-results">No results for this term.</p>`;
+      }
+      html += `</div>`;
+    }
+    container.innerHTML = html;
+    container.querySelectorAll('.save-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const project = batchResultsAll.find(p => slugId((p.sourceUrl||'')+(p.title||'')) === id) || savedMap[id];
+        if(project) toggleSave(project);
+      });
+    });
+    container.querySelectorAll('.term-tag.more').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.tt-hidden').forEach(t => { t.hidden = false; });
+        btn.hidden = true;
+      });
+    });
+    container.querySelectorAll('.retry-btn[data-q]').forEach(btn => {
+      btn.addEventListener('click', () => retryBatchTerm(btn.getAttribute('data-q')));
+    });
+  }
+
+  // ── Retry a single failed term ───────────────────────────────────────────
+  async function retryBatchTerm(term){
+    const idx = batchTermSections.findIndex(s => s.term === term);
+    if(idx < 0) return;
+    const sec = batchTermSections[idx];
+    sec.failed = false; sec.done = false;
+    const sectionEl = document.querySelector(`.batch-section[data-term="${CSS.escape(term)}"]`);
+    if(sectionEl){
+      sectionEl.querySelector('.batch-section-header').innerHTML =
+        `<span class="batch-term-name">${escapeHtml(term)}</span><span class="batch-count"><span class="scan" style="display:inline-block;width:10px;height:10px;margin-right:4px;"></span>retrying…</span>`;
+    }
+    const retryAC = new AbortController();
+    await runBatchTerm(term, idx, currentSearchCriteria.location, currentSearchCriteria.level, retryAC.signal);
+    lastResults = batchResultsAll;
+    const failedCount = batchTermSections.filter(s => s.failed).length;
+    const totalDuped = batchTermSections.reduce((sum, s) => sum + (s.duped || 0), 0);
+    let statusMsg = `${batchResultsAll.length} result${batchResultsAll.length !== 1 ? 's' : ''} across ${batchTermSections.filter(s => !s.failed).length} of ${batchTermSections.length} terms`;
+    if(totalDuped > 0) statusMsg += ` · ${totalDuped} duplicate${totalDuped !== 1 ? 's' : ''} removed`;
+    if(failedCount > 0) statusMsg += ` · ${failedCount} failed`;
+    setStatus(statusMsg, false);
+    renderBatch(batchTermSections);
+  }
+
+  // ── Batch search orchestrator ────────────────────────────────────────────
+  async function searchBatch(terms, location, level){
+    if(batchAbortController) batchAbortController.abort();
+    batchAbortController = new AbortController();
+    const batchSignal = batchAbortController.signal;
+    isBatchMode = true;
+    batchResultsAll = [];
+    batchSeen = new Set();
+    batchTermSections = terms.map(t => ({term:t, results:[], duped:0, failed:false, failMsg:'', done:false}));
+
+    viewingSaved = false; viewingAlerts = false;
+    document.getElementById('savedToggle').classList.remove('active');
+    document.getElementById('alertsToggle').classList.remove('active');
+    document.getElementById('goBtn').disabled = true;
+    document.getElementById('cancelBtn').hidden = false;
+    document.getElementById('watchBtn').hidden = true;
+    document.getElementById('planrooms').hidden = true;
+    document.getElementById('searchNoteWrap').hidden = true;
+    document.getElementById('resultsList').innerHTML = '';
+
+    const total = terms.length;
+    let completedCount = 0;
+    setStatus(`Searching ${total} term${total !== 1 ? 's' : ''}… 0/${total} done`, true);
+
+    const CONCURRENCY = 2;
+    await runConcurrent(terms, CONCURRENCY, async (term, idx) => {
+      await runBatchTerm(term, idx, location, level, batchSignal);
+      completedCount++;
+      if(!batchSignal.aborted){
+        setStatus(`Searching ${total} term${total !== 1 ? 's' : ''}… ${completedCount}/${total} done`, true);
+      }
+    });
+
+    document.getElementById('cancelBtn').hidden = true;
+    document.getElementById('goBtn').disabled = false;
+    batchAbortController = null;
+
+    if(batchSignal.aborted){
+      setStatus('Batch search cancelled.', false);
+      return;
+    }
+
+    const successCount = batchTermSections.filter(s => !s.failed).length;
+    const failedCount = batchTermSections.filter(s => s.failed).length;
+    const totalResults = batchResultsAll.length;
+    const totalDuped = batchTermSections.reduce((sum, s) => sum + (s.duped || 0), 0);
+    let statusMsg = `${totalResults} result${totalResults !== 1 ? 's' : ''} across ${successCount} of ${total} terms`;
+    if(totalDuped > 0) statusMsg += ` · ${totalDuped} duplicate${totalDuped !== 1 ? 's' : ''} removed`;
+    if(failedCount > 0) statusMsg += ` · ${failedCount} failed`;
+    statusMsg += ` · ${new Date().toLocaleTimeString()}`;
+    setStatus(statusMsg, false);
+
+    if(terms.length > 0){
+      renderPlanroomLinks(terms[0], location);
+      document.getElementById('planrooms').hidden = false;
+      document.getElementById('planrooms').open = false;
+    }
+
+    lastResults = batchResultsAll;
+    renderBatch(batchTermSections);
+  }
+
   document.getElementById('termSearchBtn').addEventListener('click', ()=>{
-    // Phase 2: sequential batch search — wired up in the next phase
+    if(!selectedTerms.size) return;
+    const terms = [...selectedTerms];
+    const location = document.getElementById('locationInput').value.trim();
+    const level = document.getElementById('levelSelect').value;
+    // Collapse panel and clear selection after launching
+    document.getElementById('termPanel').hidden = true;
+    selectedTerms.clear();
+    document.querySelectorAll('#termPanel .chip.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('#termPanel .select-all-link').forEach(b => b.textContent = 'select all');
+    syncTermActionBar();
+    searchBatch(terms, location, level);
   });
 
   document.getElementById('savedToggle').addEventListener('click', ()=>{
@@ -1868,6 +2113,7 @@ Rules:
   }
 
   document.getElementById('cancelBtn').addEventListener('click', ()=>{
+    if(batchAbortController) batchAbortController.abort();
     if(searchAbortController) searchAbortController.abort();
   });
 
