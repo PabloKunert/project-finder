@@ -207,6 +207,7 @@
     color:rgba(247,245,239,0.45);
   }
   .term-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .term-panel-topbar{ display:flex; justify-content:flex-end; margin-bottom:2px; }
   .term-group-header{ display:flex; align-items:center; justify-content:space-between; }
   .select-all-link{
     background:transparent; border:none; cursor:pointer;
@@ -845,6 +846,9 @@
         <button type="button" class="chip chip-toggle" id="termPanelToggle"><span id="termPanelLabel">Browse 22 terms ▾</span><span class="term-sel-badge" id="termSelBadge" hidden></span></button>
       </div>
       <div class="term-panel" id="termPanel" hidden>
+        <div class="term-panel-topbar">
+          <button type="button" class="select-all-link" id="selectAllTermsBtn">select all 22</button>
+        </div>
         <div class="term-group">
           <div class="term-group-header">
             <span class="term-group-label">StreetBond Products</span>
@@ -1440,7 +1444,22 @@ Rules:
   document.getElementById('termClearBtn').addEventListener('click', ()=>{
     selectedTerms.clear();
     document.querySelectorAll('#termPanel .chip.selected').forEach(c => c.classList.remove('selected'));
-    document.querySelectorAll('#termPanel .select-all-link').forEach(b => b.textContent = 'select all');
+    document.querySelectorAll('#termPanel .term-group .select-all-link').forEach(b => b.textContent = 'select all');
+    document.getElementById('selectAllTermsBtn').textContent = 'select all 22';
+    syncTermActionBar();
+  });
+
+  document.getElementById('selectAllTermsBtn').addEventListener('click', ()=>{
+    const allChips = document.querySelectorAll('#termPanel .chip[data-q]');
+    const allSelected = [...allChips].every(c => selectedTerms.has(c.getAttribute('data-q')));
+    allChips.forEach(c => {
+      const q = c.getAttribute('data-q');
+      if(allSelected){ selectedTerms.delete(q); c.classList.remove('selected'); }
+      else { selectedTerms.add(q); c.classList.add('selected'); }
+    });
+    document.querySelectorAll('#termPanel .term-group').forEach(g => syncGroupSelectAll(g));
+    const nowAll = [...allChips].every(c => selectedTerms.has(c.getAttribute('data-q')));
+    document.getElementById('selectAllTermsBtn').textContent = nowAll ? 'deselect all' : 'select all 22';
     syncTermActionBar();
   });
 
