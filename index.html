@@ -1394,7 +1394,7 @@ Rules:
 - Every result needs "type": "open_bid" (currently open/recent solicitation) or "reference_project" (completed/awarded project — still a useful lead).
 - For open_bid, status is open|closing_soon|closed. For reference_project, status is "unknown".
 - Keep each snippet under 12 words.
-- Return AT MOST 20 results. Prioritize open/active bids over reference projects.
+- Return AT MOST 10 results. Prioritize open/active bids over reference projects.
 - The "note" field is REQUIRED on every response — one short sentence stating what you searched and roughly how many relevant hits came back.
 - Write the JSON as your last step and finish it completely — nothing after the closing brace.
 - Respond with ONLY raw JSON, no markdown code fences, no commentary before or after, matching exactly this schema:
@@ -1603,7 +1603,7 @@ Rules:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
+        max_tokens: 4000,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserPrompt(query, location, level) }],
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }]
@@ -1777,7 +1777,7 @@ Rules:
         const timedOut = elapsed >= TIMEOUT_MS / 1000 - 1;
         setStatus(timedOut ? 'Search timed out.' : 'Search cancelled.', false);
         document.getElementById('resultsList').innerHTML = timedOut
-          ? `<div class="error-state"><h3>Search timed out</h3><p>The search took longer than 20s. Try a simpler or shorter query.</p></div>`
+          ? `<div class="error-state"><h3>Search timed out</h3><p>The search took longer than ${TIMEOUT_MS/1000}s. Try again — searches with many results can occasionally be slow.</p></div>`
           : `<div class="error-state"><h3>Search cancelled</h3><p>Search was stopped before completing.</p></div>`;
         document.getElementById('planrooms').open = true;
       } else {
