@@ -119,10 +119,11 @@
     border:none;
     background:var(--line-white);
     color:var(--ink);
+    min-height:44px;
   }
-  #queryWrap{ flex:2 1 220px; }
+  #queryWrap{ flex:3 1 240px; }
   #queryInput{ font-weight:600; width:100%; }
-  #locationInput{ width:100%; }
+  #locationSelect{ flex:1 1 160px; cursor:pointer; }
   #levelSelect{ flex:1 1 150px; cursor:pointer; }
   .go-btn{
     flex:0 0 auto;
@@ -565,15 +566,21 @@
     padding:0 24px 40px;
   }
 
+  /* Tablet: keyword full-width row 1, location+level share row 2, GO full-width row 3 */
+  @media (max-width:640px){
+    .search-row{ gap:8px; }
+    #queryWrap{ flex:1 1 100%; }
+    #locationSelect, #levelSelect{ flex:1 1 calc(50% - 4px); min-width:0; }
+    .go-btn{ flex:1 1 100%; clip-path:none; padding-left:26px; }
+  }
   @media (max-width:480px){
     .topbar{ padding:12px 16px; }
     .brand{ font-size:15px; gap:7px; }
     .brand svg{ width:20px; height:20px; }
     .saved-toggle{ font-size:12px; padding:6px 10px; }
-    .search-row{ flex-direction:column; }
-    #queryWrap, #levelSelect, .go-btn{ flex:1 1 auto; width:100%; }
-    #queryInput, #locationInput{ width:100%; }
-    .go-btn{ clip-path:none; padding-left:26px; }
+    #queryWrap, #locationSelect, #levelSelect, .go-btn{ flex:1 1 auto; width:100%; }
+    .chip-row{ overflow-x:auto; flex-wrap:nowrap; padding-bottom:4px; }
+    .term-panel .term-chips{ overflow-x:auto; flex-wrap:nowrap; }
   }
   @media (max-width:390px){
     .topbar{ padding:10px 12px; }
@@ -764,9 +771,61 @@
       <div class="ac-wrap" id="queryWrap">
         <input type="text" id="queryInput" value="StreetBond 120" aria-label="Product or search term" autocomplete="off">
       </div>
-      <div class="ac-wrap">
-        <input type="text" id="locationInput" placeholder="State or city (optional)" aria-label="Location filter" autocomplete="off">
-      </div>
+      <select id="locationSelect" aria-label="Location">
+        <option value="all">All States</option>
+        <option disabled>──────────────</option>
+        <option value="Alabama">Alabama</option>
+        <option value="Alaska">Alaska</option>
+        <option value="Arizona">Arizona</option>
+        <option value="Arkansas">Arkansas</option>
+        <option value="California">California</option>
+        <option value="Colorado">Colorado</option>
+        <option value="Connecticut">Connecticut</option>
+        <option value="Delaware">Delaware</option>
+        <option value="Florida">Florida</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Hawaii">Hawaii</option>
+        <option value="Idaho">Idaho</option>
+        <option value="Illinois">Illinois</option>
+        <option value="Indiana">Indiana</option>
+        <option value="Iowa">Iowa</option>
+        <option value="Kansas">Kansas</option>
+        <option value="Kentucky">Kentucky</option>
+        <option value="Louisiana">Louisiana</option>
+        <option value="Maine">Maine</option>
+        <option value="Maryland">Maryland</option>
+        <option value="Massachusetts">Massachusetts</option>
+        <option value="Michigan">Michigan</option>
+        <option value="Minnesota">Minnesota</option>
+        <option value="Mississippi">Mississippi</option>
+        <option value="Missouri">Missouri</option>
+        <option value="Montana">Montana</option>
+        <option value="Nebraska">Nebraska</option>
+        <option value="Nevada">Nevada</option>
+        <option value="New Hampshire">New Hampshire</option>
+        <option value="New Jersey">New Jersey</option>
+        <option value="New Mexico">New Mexico</option>
+        <option value="New York">New York</option>
+        <option value="North Carolina">North Carolina</option>
+        <option value="North Dakota">North Dakota</option>
+        <option value="Ohio">Ohio</option>
+        <option value="Oklahoma">Oklahoma</option>
+        <option value="Oregon">Oregon</option>
+        <option value="Pennsylvania">Pennsylvania</option>
+        <option value="Rhode Island">Rhode Island</option>
+        <option value="South Carolina">South Carolina</option>
+        <option value="South Dakota">South Dakota</option>
+        <option value="Tennessee">Tennessee</option>
+        <option value="Texas">Texas</option>
+        <option value="Utah">Utah</option>
+        <option value="Vermont">Vermont</option>
+        <option value="Virginia">Virginia</option>
+        <option value="Washington">Washington</option>
+        <option value="West Virginia">West Virginia</option>
+        <option value="Wisconsin">Wisconsin</option>
+        <option value="Wyoming">Wyoming</option>
+        <option value="Washington D.C.">Washington D.C.</option>
+      </select>
       <select id="levelSelect" aria-label="Government level">
         <option value="all">All levels</option>
         <option value="federal">Federal</option>
@@ -883,6 +942,18 @@
   // Cloudflare Worker proxy — deployed from proxy/worker.js
   const PROXY_URL = "https://gh-pages-proxy.pablo-kunert.workers.dev";
 
+  // Location sentinel for "no state restriction" / nationwide
+  const ALL_STATES_VAL = 'all';
+
+  // Returns '' for nationwide (used when building search queries)
+  function locationForSearch(loc){
+    return (loc === ALL_STATES_VAL || !loc) ? '' : loc;
+  }
+  // Returns 'Nationwide' for compact summaries, state name otherwise
+  function locationDisplayNationwide(loc){
+    return (loc === ALL_STATES_VAL || !loc) ? 'Nationwide' : loc;
+  }
+
   const SYSTEM_PROMPT = `You are a procurement research assistant. You get exactly ONE web search for this request. Use it to look for real government construction/procurement bid opportunities, RFPs, or awarded projects that reference the product or category given.
 
 Rules:
@@ -899,7 +970,8 @@ Rules:
 
   function buildUserPrompt(query, location, level){
     const levelText = level === 'all' ? '' : ` at the ${level} government level`;
-    const locText = location ? ` in ${location}` : ' anywhere in the United States';
+    const effectiveLoc = locationForSearch(location);
+    const locText = effectiveLoc ? ` in ${effectiveLoc}` : ' across the United States';
     return `Search once for government construction or procurement leads${levelText} related to "${query}"${locText}. Return only the JSON schema described.`;
   }
 
@@ -1097,8 +1169,8 @@ Rules:
 
   function renderPlanroomLinks(query, location){
     const q = encodeURIComponent(query);
-    const loc = location || '';
-    const isCa = /\bCA\b/.test(loc) || /\bcalifornia\b/i.test(loc);
+    const effectiveLoc = locationForSearch(location);
+    const isCa = /\bcalifornia\b/i.test(effectiveLoc);
 
     // Login URL for Crisp deep-links to the search after auth via their redirect= param
     const crispLoginUrl = 'https://www.crispplanroom.com/auth/login?redirect='
@@ -1207,11 +1279,13 @@ Rules:
     document.getElementById('resultsList').innerHTML = '';
     renderPlanroomLinks(query, location);
 
-    setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
+    const effectiveLoc = locationForSearch(location);
+    const locCtx = effectiveLoc ? ` in ${effectiveLoc}` : ' nationwide';
+    setStatus(`Searching bid boards${locCtx} for &ldquo;${escapeHtml(query)}&rdquo;&hellip;`, true);
 
     const timerInterval = setInterval(()=>{
       const s = Math.floor((Date.now() - startTime) / 1000);
-      setStatus(`Searching bid boards for &ldquo;${escapeHtml(query)}&rdquo;&hellip; <span class="elapsed">${s}s</span>`, true);
+      setStatus(`Searching bid boards${locCtx} for &ldquo;${escapeHtml(query)}&rdquo;&hellip; <span class="elapsed">${s}s</span>`, true);
     }, 1000);
 
     try{
@@ -1238,7 +1312,8 @@ Rules:
       } else if(parsed._partial){
         setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} recovered from a cut-off response — try again for a cleaner pass.`, false);
       } else {
-        setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} found · ${new Date().toLocaleTimeString()}`, false);
+        const inText = effectiveLoc ? ` in ${effectiveLoc}` : '';
+        setStatus(`${lastResults.length} result${lastResults.length===1?'':'s'} found${inText} · ${new Date().toLocaleTimeString()}`, false);
       }
 
       if(combinedNote){
@@ -1283,7 +1358,7 @@ Rules:
       return;
     }
     saveFilters();
-    search(q, document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
+    search(q, document.getElementById('locationSelect').value, document.getElementById('levelSelect').value);
   });
 
   // ── Multi-select term state ───────────────────────────────────────────────
@@ -1353,7 +1428,7 @@ Rules:
     // Quick-pick chips in chip-row → instant single search (original behavior)
     document.getElementById('queryInput').value = btn.getAttribute('data-q');
     saveFilters();
-    search(btn.getAttribute('data-q'), document.getElementById('locationInput').value.trim(), document.getElementById('levelSelect').value);
+    search(btn.getAttribute('data-q'), document.getElementById('locationSelect').value, document.getElementById('levelSelect').value);
   });
 
   document.getElementById('termPanelToggle').addEventListener('click', ()=>{
@@ -1569,7 +1644,7 @@ Rules:
   document.getElementById('termSearchBtn').addEventListener('click', ()=>{
     if(!selectedTerms.size) return;
     const terms = [...selectedTerms];
-    const location = document.getElementById('locationInput').value.trim();
+    const location = document.getElementById('locationSelect').value;
     const level = document.getElementById('levelSelect').value;
     // Collapse panel and clear selection after launching
     document.getElementById('termPanel').hidden = true;
@@ -1712,7 +1787,7 @@ Rules:
 
   function fireNotification(a, count){
     if(!('Notification' in window) || Notification.permission !== 'granted') return;
-    const sub = [a.location, a.level !== 'all' ? a.level : ''].filter(Boolean).join(' · ') || 'US-wide';
+    const sub = [locationDisplayNationwide(a.location), a.level !== 'all' ? a.level : ''].filter(Boolean).join(' · ');
     new Notification(`BidRoute: ${count} new result${count>1?'s':''} for "${a.query}"`, {
       body: sub, tag: 'bidroute-' + a.id,
     });
@@ -1753,7 +1828,8 @@ Rules:
     const hasNew = a.newCount > 0;
     const hasResults = (a.lastResults||[]).length > 0;
     const levelLabel = {all:'All levels',federal:'Federal',state:'State/DOT',municipal:'Municipal/County'}[a.level] || a.level;
-    const metaParts = [a.location, a.level !== 'all' ? levelLabel : ''].filter(Boolean);
+    const locationLabel = locationDisplayNationwide(a.location);
+    const metaParts = [locationLabel, a.level !== 'all' ? levelLabel : ''].filter(Boolean);
 
     const newSection = hasNew ? `
       <div class="alert-new-results">
@@ -1884,134 +1960,6 @@ Rules:
     updateWatchBtn();
   });
 
-  /* ---- Location autocomplete ---- */
-  const LOCATIONS = [
-    {n:"Alabama",a:"AL"},{n:"Alaska",a:"AK"},{n:"Arizona",a:"AZ"},{n:"Arkansas",a:"AR"},
-    {n:"California",a:"CA"},{n:"Colorado",a:"CO"},{n:"Connecticut",a:"CT"},{n:"Delaware",a:"DE"},
-    {n:"Florida",a:"FL"},{n:"Georgia",a:"GA"},{n:"Hawaii",a:"HI"},{n:"Idaho",a:"ID"},
-    {n:"Illinois",a:"IL"},{n:"Indiana",a:"IN"},{n:"Iowa",a:"IA"},{n:"Kansas",a:"KS"},
-    {n:"Kentucky",a:"KY"},{n:"Louisiana",a:"LA"},{n:"Maine",a:"ME"},{n:"Maryland",a:"MD"},
-    {n:"Massachusetts",a:"MA"},{n:"Michigan",a:"MI"},{n:"Minnesota",a:"MN"},{n:"Mississippi",a:"MS"},
-    {n:"Missouri",a:"MO"},{n:"Montana",a:"MT"},{n:"Nebraska",a:"NE"},{n:"Nevada",a:"NV"},
-    {n:"New Hampshire",a:"NH"},{n:"New Jersey",a:"NJ"},{n:"New Mexico",a:"NM"},{n:"New York",a:"NY"},
-    {n:"North Carolina",a:"NC"},{n:"North Dakota",a:"ND"},{n:"Ohio",a:"OH"},{n:"Oklahoma",a:"OK"},
-    {n:"Oregon",a:"OR"},{n:"Pennsylvania",a:"PA"},{n:"Rhode Island",a:"RI"},{n:"South Carolina",a:"SC"},
-    {n:"South Dakota",a:"SD"},{n:"Tennessee",a:"TN"},{n:"Texas",a:"TX"},{n:"Utah",a:"UT"},
-    {n:"Vermont",a:"VT"},{n:"Virginia",a:"VA"},{n:"Washington",a:"WA"},{n:"West Virginia",a:"WV"},
-    {n:"Wisconsin",a:"WI"},{n:"Wyoming",a:"WY"},{n:"Washington D.C.",a:"DC"},
-    {n:"Birmingham",a:"AL"},{n:"Huntsville",a:"AL"},{n:"Mobile",a:"AL"},{n:"Montgomery",a:"AL"},
-    {n:"Anchorage",a:"AK"},{n:"Fairbanks",a:"AK"},
-    {n:"Chandler",a:"AZ"},{n:"Flagstaff",a:"AZ"},{n:"Mesa",a:"AZ"},{n:"Phoenix",a:"AZ"},{n:"Scottsdale",a:"AZ"},{n:"Tucson",a:"AZ"},
-    {n:"Fayetteville",a:"AR"},{n:"Fort Smith",a:"AR"},{n:"Little Rock",a:"AR"},
-    {n:"Bakersfield",a:"CA"},{n:"Fresno",a:"CA"},{n:"Irvine",a:"CA"},{n:"Long Beach",a:"CA"},{n:"Los Angeles",a:"CA"},{n:"Oakland",a:"CA"},{n:"Riverside",a:"CA"},{n:"Sacramento",a:"CA"},{n:"San Diego",a:"CA"},{n:"San Francisco",a:"CA"},{n:"San Jose",a:"CA"},{n:"Santa Ana",a:"CA"},{n:"Santa Barbara",a:"CA"},{n:"Stockton",a:"CA"},
-    {n:"Aurora",a:"CO"},{n:"Colorado Springs",a:"CO"},{n:"Denver",a:"CO"},{n:"Fort Collins",a:"CO"},{n:"Pueblo",a:"CO"},
-    {n:"Bridgeport",a:"CT"},{n:"Hartford",a:"CT"},{n:"New Haven",a:"CT"},{n:"Stamford",a:"CT"},
-    {n:"Dover",a:"DE"},{n:"Wilmington",a:"DE"},
-    {n:"Cape Coral",a:"FL"},{n:"Fort Lauderdale",a:"FL"},{n:"Gainesville",a:"FL"},{n:"Jacksonville",a:"FL"},{n:"Miami",a:"FL"},{n:"Orlando",a:"FL"},{n:"St. Petersburg",a:"FL"},{n:"Tallahassee",a:"FL"},{n:"Tampa",a:"FL"},
-    {n:"Atlanta",a:"GA"},{n:"Augusta",a:"GA"},{n:"Columbus",a:"GA"},{n:"Savannah",a:"GA"},
-    {n:"Honolulu",a:"HI"},
-    {n:"Boise",a:"ID"},{n:"Idaho Falls",a:"ID"},{n:"Nampa",a:"ID"},
-    {n:"Chicago",a:"IL"},{n:"Naperville",a:"IL"},{n:"Peoria",a:"IL"},{n:"Rockford",a:"IL"},{n:"Springfield",a:"IL"},
-    {n:"Evansville",a:"IN"},{n:"Fort Wayne",a:"IN"},{n:"Indianapolis",a:"IN"},{n:"South Bend",a:"IN"},
-    {n:"Cedar Rapids",a:"IA"},{n:"Davenport",a:"IA"},{n:"Des Moines",a:"IA"},
-    {n:"Kansas City",a:"KS"},{n:"Overland Park",a:"KS"},{n:"Topeka",a:"KS"},{n:"Wichita",a:"KS"},
-    {n:"Lexington",a:"KY"},{n:"Louisville",a:"KY"},
-    {n:"Baton Rouge",a:"LA"},{n:"New Orleans",a:"LA"},{n:"Shreveport",a:"LA"},
-    {n:"Augusta",a:"ME"},{n:"Portland",a:"ME"},
-    {n:"Baltimore",a:"MD"},{n:"Frederick",a:"MD"},{n:"Rockville",a:"MD"},
-    {n:"Boston",a:"MA"},{n:"Cambridge",a:"MA"},{n:"Springfield",a:"MA"},{n:"Worcester",a:"MA"},
-    {n:"Ann Arbor",a:"MI"},{n:"Detroit",a:"MI"},{n:"Flint",a:"MI"},{n:"Grand Rapids",a:"MI"},{n:"Lansing",a:"MI"},
-    {n:"Duluth",a:"MN"},{n:"Minneapolis",a:"MN"},{n:"Rochester",a:"MN"},{n:"St. Paul",a:"MN"},
-    {n:"Biloxi",a:"MS"},{n:"Jackson",a:"MS"},
-    {n:"Columbia",a:"MO"},{n:"Kansas City",a:"MO"},{n:"Springfield",a:"MO"},{n:"St. Louis",a:"MO"},
-    {n:"Billings",a:"MT"},{n:"Great Falls",a:"MT"},{n:"Missoula",a:"MT"},
-    {n:"Lincoln",a:"NE"},{n:"Omaha",a:"NE"},
-    {n:"Henderson",a:"NV"},{n:"Las Vegas",a:"NV"},{n:"Reno",a:"NV"},
-    {n:"Concord",a:"NH"},{n:"Manchester",a:"NH"},{n:"Nashua",a:"NH"},
-    {n:"Jersey City",a:"NJ"},{n:"Newark",a:"NJ"},{n:"Paterson",a:"NJ"},{n:"Trenton",a:"NJ"},
-    {n:"Albuquerque",a:"NM"},{n:"Las Cruces",a:"NM"},{n:"Santa Fe",a:"NM"},
-    {n:"Albany",a:"NY"},{n:"Buffalo",a:"NY"},{n:"New York City",a:"NY"},{n:"Rochester",a:"NY"},{n:"Syracuse",a:"NY"},{n:"Yonkers",a:"NY"},
-    {n:"Charlotte",a:"NC"},{n:"Durham",a:"NC"},{n:"Greensboro",a:"NC"},{n:"Raleigh",a:"NC"},{n:"Winston-Salem",a:"NC"},
-    {n:"Bismarck",a:"ND"},{n:"Fargo",a:"ND"},
-    {n:"Akron",a:"OH"},{n:"Cincinnati",a:"OH"},{n:"Cleveland",a:"OH"},{n:"Columbus",a:"OH"},{n:"Dayton",a:"OH"},{n:"Toledo",a:"OH"},
-    {n:"Norman",a:"OK"},{n:"Oklahoma City",a:"OK"},{n:"Tulsa",a:"OK"},
-    {n:"Eugene",a:"OR"},{n:"Portland",a:"OR"},{n:"Salem",a:"OR"},
-    {n:"Allentown",a:"PA"},{n:"Philadelphia",a:"PA"},{n:"Pittsburgh",a:"PA"},{n:"Reading",a:"PA"},
-    {n:"Providence",a:"RI"},
-    {n:"Charleston",a:"SC"},{n:"Columbia",a:"SC"},{n:"Greenville",a:"SC"},
-    {n:"Rapid City",a:"SD"},{n:"Sioux Falls",a:"SD"},
-    {n:"Chattanooga",a:"TN"},{n:"Knoxville",a:"TN"},{n:"Memphis",a:"TN"},{n:"Nashville",a:"TN"},
-    {n:"Arlington",a:"TX"},{n:"Austin",a:"TX"},{n:"Corpus Christi",a:"TX"},{n:"Dallas",a:"TX"},{n:"El Paso",a:"TX"},{n:"Fort Worth",a:"TX"},{n:"Houston",a:"TX"},{n:"Laredo",a:"TX"},{n:"Lubbock",a:"TX"},{n:"Plano",a:"TX"},{n:"San Antonio",a:"TX"},
-    {n:"Provo",a:"UT"},{n:"Salt Lake City",a:"UT"},{n:"West Valley City",a:"UT"},
-    {n:"Burlington",a:"VT"},
-    {n:"Alexandria",a:"VA"},{n:"Chesapeake",a:"VA"},{n:"Norfolk",a:"VA"},{n:"Richmond",a:"VA"},{n:"Virginia Beach",a:"VA"},
-    {n:"Bellevue",a:"WA"},{n:"Seattle",a:"WA"},{n:"Spokane",a:"WA"},{n:"Tacoma",a:"WA"},
-    {n:"Charleston",a:"WV"},{n:"Huntington",a:"WV"},
-    {n:"Green Bay",a:"WI"},{n:"Madison",a:"WI"},{n:"Milwaukee",a:"WI"},
-    {n:"Casper",a:"WY"},{n:"Cheyenne",a:"WY"},
-  ];
-
-  const STATE_COUNT = 51;
-
-  function makeLocationAC(inputEl){
-    const wrap = inputEl.parentElement;
-    const drop = document.createElement('ul');
-    drop.className = 'ac-drop';
-    wrap.appendChild(drop);
-    let activeIdx = -1, cur = [];
-
-    function query(q){
-      const ql = q.toLowerCase();
-      const starts = [], contains = [];
-      for(const loc of LOCATIONS){
-        const nl = loc.n.toLowerCase(), al = loc.a.toLowerCase();
-        if(nl.startsWith(ql) || al === ql || al.startsWith(ql)) starts.push(loc);
-        else if(nl.includes(ql)) contains.push(loc);
-      }
-      return [...starts, ...contains].slice(0, 8);
-    }
-
-    function fill(loc){
-      const isState = LOCATIONS.indexOf(loc) < STATE_COUNT;
-      return isState ? loc.n : loc.n + ', ' + loc.a;
-    }
-
-    function setActive(i){
-      activeIdx = i;
-      drop.querySelectorAll('.ac-item').forEach((el,idx)=>el.classList.toggle('hi',idx===i));
-      const hi = drop.querySelectorAll('.ac-item')[i];
-      if(hi) hi.scrollIntoView({block:'nearest'});
-    }
-    function close(){ drop.classList.remove('open'); activeIdx=-1; cur=[]; }
-    function select(loc){ inputEl.value = fill(loc); close(); }
-
-    function render(results){
-      cur = results; activeIdx = -1; drop.innerHTML = '';
-      if(!results.length){ close(); return; }
-      results.forEach((loc,i)=>{
-        const li = document.createElement('li');
-        li.className = 'ac-item';
-        li.innerHTML = escapeHtml(loc.n) + ' <span class="ac-sub">' + escapeHtml(loc.a) + '</span>';
-        li.addEventListener('mousedown', e=>{ e.preventDefault(); select(loc); });
-        li.addEventListener('mouseenter', ()=>setActive(i));
-        drop.appendChild(li);
-      });
-      drop.classList.add('open');
-    }
-
-    inputEl.addEventListener('input',()=>{ const q=inputEl.value.trim(); q.length<1?close():render(query(q)); });
-    inputEl.addEventListener('focus',()=>{ const q=inputEl.value.trim(); if(q.length>=1) render(query(q)); });
-    inputEl.addEventListener('blur',()=>setTimeout(close,150));
-    inputEl.addEventListener('keydown',e=>{
-      if(!drop.classList.contains('open')) return;
-      const items=drop.querySelectorAll('.ac-item');
-      if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(activeIdx+1,items.length-1));}
-      else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(activeIdx-1,0));}
-      else if(e.key==='Enter'&&activeIdx>=0&&cur[activeIdx]){e.preventDefault();select(cur[activeIdx]);}
-      else if(e.key==='Escape'){e.preventDefault();close();}
-    });
-  }
-
   /* ---- Query autocomplete ---- */
   const QUERIES = [
     // StreetBond
@@ -2096,7 +2044,7 @@ Rules:
     try{
       localStorage.setItem('bidroute:filters', JSON.stringify({
         query:    document.getElementById('queryInput').value.trim(),
-        location: document.getElementById('locationInput').value.trim(),
+        location: document.getElementById('locationSelect').value,
         level:    document.getElementById('levelSelect').value
       }));
     }catch(e){}
@@ -2106,9 +2054,13 @@ Rules:
     try{
       const f = JSON.parse(localStorage.getItem('bidroute:filters') || 'null');
       if(!f) return;
-      if(f.query)    document.getElementById('queryInput').value    = f.query;
-      if(f.location) document.getElementById('locationInput').value = f.location;
-      if(f.level)    document.getElementById('levelSelect').value   = f.level;
+      if(f.query) document.getElementById('queryInput').value = f.query;
+      if(f.level) document.getElementById('levelSelect').value = f.level;
+      // Restore location; treat empty/missing/city values (old format) as nationwide
+      const sel = document.getElementById('locationSelect');
+      const savedLoc = f.location || ALL_STATES_VAL;
+      sel.value = savedLoc;
+      if(sel.value !== savedLoc) sel.value = ALL_STATES_VAL; // value not in options → default
     }catch(e){}
   }
 
@@ -2121,9 +2073,8 @@ Rules:
   loadSaved();
   loadAlerts();
   makeSimpleAC(document.getElementById('queryInput'), QUERIES);
-  makeLocationAC(document.getElementById('locationInput'));
   const _initQuery = document.getElementById('queryInput').value || 'StreetBond 120';
-  const _initLoc   = document.getElementById('locationInput').value;
+  const _initLoc   = document.getElementById('locationSelect').value;
   const _initLvl   = document.getElementById('levelSelect').value;
   // After initial search completes, check any alerts not checked in the last 4 hours.
   // Each check costs one API call — no service worker or background polling is used here.
