@@ -1251,7 +1251,7 @@ footer {
             </div>
             <div class="term-chips">
               <button type="button" class="chip" data-q="Cool coating">Cool coating</button>
-              <button type="button" class="chip" data-q="Solar reflective coating">Solar reflective coating</button>
+              <button type="button" class="chip" data-q="Solar reflective asphalt coating">Solar reflective asphalt coating</button>
               <button type="button" class="chip" data-q="Cool pavement">Cool pavement</button>
             </div>
           </div>
@@ -1378,7 +1378,7 @@ footer {
   ];
   const TERM_GROUP_MAP = {
     'StreetBond 120':0,'StreetBond 150':0,'StreetBond':0,'StreetBond DA':0,'Transpo Industries StreetBond':0,
-    'Cool coating':1,'Solar reflective coating':1,'Cool pavement':1,
+    'Cool coating':1,'Solar reflective asphalt coating':1,'Cool pavement':1,
     'Decorative thermoplastic':2,'Thermoplastic XD':2,'Intersection thermoplastic':2,
     'Decorative asphalt':3,'Stamped asphalt':3,'Decorative crosswalks':3,'Decocoat asphalt coating':3,
     'Epoxy modified acrylic':4,'Epoxy fortified acrylic':4,'Acrylic asphalt coating':4,
@@ -1559,7 +1559,7 @@ Rules:
     const value = cleanVal(project.estimatedValue);
     const deadline = cleanVal(isReference ? (project.deadline ? 'Awarded '+project.deadline : '') : project.deadline);
     return `
-    <div class="result-row status-${escapeHtml(status)}${isReference ? ' is-reference' : ''}" tabindex="0">
+    <div class="result-row status-${escapeHtml(status)}${isReference ? ' is-reference' : ''}" tabindex="0" data-pid="${id}">
       <div class="row-body">
         <div class="row-left">
           <div class="row-titles">
@@ -2467,7 +2467,7 @@ Rules:
     // StreetBond
     'StreetBond 120', 'StreetBond 150', 'StreetBond', 'StreetBond DA', 'Transpo Industries StreetBond',
     // Cool & reflective
-    'Cool coating', 'Solar reflective coating', 'Cool pavement',
+    'Cool coating', 'Solar reflective asphalt coating', 'Cool pavement',
     // Thermoplastic
     'Decorative thermoplastic', 'Thermoplastic XD', 'Intersection thermoplastic',
     // Decorative asphalt
@@ -2664,13 +2664,16 @@ Rules:
 
   document.getElementById('resultsList').addEventListener('click', (e)=>{
     if(e.target.closest('.save-btn') || e.target.closest('.view-link') || e.target.closest('.retry-btn')) return;
-    const row = e.target.closest('.result-row');
+    const row = e.target.closest('[data-pid]');
     if(!row) return;
-    const id = row.querySelector('.save-btn')?.getAttribute('data-id');
-    if(!id) return;
-    const allProjects = isBatchMode ? batchResultsAll : (viewingSaved ? Object.values(savedMap) : lastResults);
-    const project = allProjects.find(p => slugId((p.sourceUrl||'')+(p.title||'')) === id)
-      || Object.values(savedMap).find(p => slugId((p.sourceUrl||'')+(p.title||'')) === id);
+    const pid = row.getAttribute('data-pid');
+    const pools = [
+      lastResults,
+      batchResultsAll,
+      Object.values(savedMap),
+      ...Object.values(alertsMap).map(a => [...(a.lastResults||[]), ...(a.newResults||[])])
+    ];
+    const project = pools.flat().find(p => slugId((p.sourceUrl||'')+(p.title||'')) === pid);
     if(project) openDetail(project);
   });
 </script>
