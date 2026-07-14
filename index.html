@@ -1350,6 +1350,22 @@ footer {
 
 <footer>BidRoute · live search · not affiliated with any bid platform or agency.</footer>
 
+<div class="detail-overlay" id="detailOverlay" hidden></div>
+<div class="detail-panel" id="detailPanel" hidden>
+  <div class="detail-header">
+    <div class="detail-title-block">
+      <div class="detail-agency" id="detailAgency"></div>
+      <div class="detail-title" id="detailTitle"></div>
+    </div>
+    <button class="detail-close" id="detailClose" aria-label="Close">✕</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+  <div class="detail-footer">
+    <a class="detail-view-btn" id="detailViewBtn" target="_blank" rel="noopener noreferrer">View solicitation ↗</a>
+    <button class="detail-save-btn" id="detailSaveBtn">☆ Save</button>
+  </div>
+</div>
+
 <script>
   const TAG_PALETTE = [
     { bg:'#E6F0FD', text:'#1A5FA0' },
@@ -2658,22 +2674,6 @@ Rules:
     if(project) openDetail(project);
   });
 </script>
-
-<div class="detail-overlay" id="detailOverlay" hidden></div>
-<div class="detail-panel" id="detailPanel" hidden>
-  <div class="detail-header">
-    <div class="detail-title-block">
-      <div class="detail-agency" id="detailAgency"></div>
-      <div class="detail-title" id="detailTitle"></div>
-    </div>
-    <button class="detail-close" id="detailClose" aria-label="Close">✕</button>
-  </div>
-  <div class="detail-body" id="detailBody"></div>
-  <div class="detail-footer">
-    <a class="detail-view-btn" id="detailViewBtn" target="_blank" rel="noopener noreferrer">View solicitation ↗</a>
-    <button class="detail-save-btn" id="detailSaveBtn">☆ Save</button>
-  </div>
-</div>
 
 </body>
 </html>
